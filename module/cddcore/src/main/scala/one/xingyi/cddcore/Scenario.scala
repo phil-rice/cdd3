@@ -10,6 +10,8 @@ object ScenarioLogic {
 case class UndefinedException(logic: Seq[PartialFunction[_, _]], p: Any) extends RuntimeException(s"Cannot execute because undefined at $p. \nLogic is\n${logic.mkString("\n")}")
 
 trait ScenarioLogic[P, R] extends PartialFunction[P, R] {
+  def accept(s: Scenario[P, R]) = isDefinedAt(s.situation) && s.acceptResult(s.situation, apply(s.situation))
+
   def or(logic: SingleScenarioLogic[P, R]): ScenarioLogic[P, R]
 
   def hasCondition: Boolean
