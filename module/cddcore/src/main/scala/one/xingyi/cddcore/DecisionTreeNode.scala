@@ -6,6 +6,7 @@ import one.xingyi.cddutilities.Lens
 import scala.util.{Failure, Success, Try}
 
 sealed trait DecisionTreeNode[P, R] {
+  def logic: ScenarioLogic[P,R]
   def findLens(p: P): Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]]
   def findLensAndCnLens = use(findLens)(lens => (lens, lens andThen DecisionTreeNode.nodeToConcL))
 }
@@ -16,9 +17,9 @@ case class ConclusionNode[P, R](scenarios: List[Scenario[P, R]], logic: Scenario
   override def findLens(p: P): Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]] = Lens.identity
 }
 
-case class DecisionNode[P, R](condition: ScenarioLogic[P, R], left: DecisionTreeNode[P, R], right: DecisionTreeNode[P, R]) extends DecisionTreeNode[P, R] {
+case class DecisionNode[P, R](logic: ScenarioLogic[P, R], left: DecisionTreeNode[P, R], right: DecisionTreeNode[P, R]) extends DecisionTreeNode[P, R] {
   import DecisionTreeNode._
-  override def findLens(p: P): Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]] = condition.isDefinedAt(p) match {
+  override def findLens(p: P): Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]] = logic.isDefinedAt(p) match {
     case true => nodeToDNL andThen DNLtoRight[P, R] andThen right.findLens(p)
     case false => nodeToDNL andThen DNLtoLeft[P, R] andThen left.findLens(p)
   }

@@ -57,6 +57,7 @@ case class RawSituation[P](p: P, data: ScenarioBuilderData[P, Nothing]) {
 case class Produces[P, R](data: ScenarioBuilderData[P, R])(implicit a: ScenarioAggregator[P, R]) extends ScenarioBuilderComponent[Produces[P, R], P, R] {
   override protected def rawCopyWith(fn: ScenarioBuilderData[P, R] => ScenarioBuilderData[P, R]) = copy(data = data)
   def when(whenFn: P => Boolean) = WithWhen(whenFn, data)
+//  def when2[P1,P2](whenFn: (P1,P2) => Boolean)(implicit evidence: (P1, P2) =:= P) = WithWhen(whenFn.tupled, data)
   def because(whenFn: PartialFunction[P, R]) = WithBecause(whenFn, data)
   override val scenarioReason: SingleScenarioLogic[P, R] = SingleScenarioLogic[P, R](data.result, None, None, data.isDefinedAt)
 }
