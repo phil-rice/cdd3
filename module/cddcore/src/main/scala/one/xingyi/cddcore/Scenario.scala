@@ -1,6 +1,10 @@
 package one.xingyi.cddcore
 import one.xingyi.cddutilities.{DefinedInSourceCodeAt, ShortPrint}
+import scala.language.higherKinds
 
+trait HasScenarios[T[_, _]] {
+  def allScenarios[P, R](t: T[P, R]): List[Scenario[P, R]]
+}
 case class NoDefaultDefinedException(p: Any) extends RuntimeException(s"Calling apply using $p without a default defined")
 
 object ScenarioLogic {
@@ -15,6 +19,7 @@ trait ScenarioLogic[P, R] extends PartialFunction[P, R] {
   def or(logic: SingleScenarioLogic[P, R]): ScenarioLogic[P, R]
 
   def hasCondition: Boolean
+  def definedInSourceCodeAt:DefinedInSourceCodeAt
 }
 case class SingleScenarioLogic[P, R](result: Option[R], definedAt: Option[P => Boolean], code: Option[P => R], definedInSourceCodeAt: DefinedInSourceCodeAt)(implicit shortPrintP: ShortPrint[P], shortPrintR: ShortPrint[R]) extends ScenarioLogic[P, R] {
   override def hasCondition: Boolean = definedAt.isDefined
@@ -27,7 +32,7 @@ case class SingleScenarioLogic[P, R](result: Option[R], definedAt: Option[P => B
   override def or(logic: SingleScenarioLogic[P, R]): ScenarioLogic[P, R] = CompositeScenarioLogic(Seq(this, logic))
 }
 
-case class CompositeScenarioLogic[P, R](logics: Seq[ScenarioLogic[P, R]]) extends ScenarioLogic[P, R] {
+case class CompositeScenarioLogic[P, R](logics: Seq[ScenarioLogic[P, R]])(implicit val definedInSourceCodeAt: DefinedInSourceCodeAt = DefinedInSourceCodeAt.definedInSourceCodeAt()) extends ScenarioLogic[P, R] {
   override def isDefinedAt(p: P): Boolean = logics.exists(_.isDefinedAt(p))
   override def apply(p: P): R = logics.find(_.isDefinedAt(p)).getOrElse(throw new UndefinedException(logics, p)).apply(p)
   override def hasCondition: Boolean = logics.exists(_.hasCondition)

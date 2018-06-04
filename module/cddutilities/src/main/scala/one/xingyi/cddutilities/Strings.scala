@@ -2,6 +2,8 @@
 package one.xingyi.cddutilities
 
 object Strings {
+  def blanks(depth: Int) = List.fill(depth)(" ").mkString("")
+
   def splitLines(s: String): Seq[String] = s.split("""(\r|\n|\f)""").filter(_.length>0).toSeq
 
   def trimChar(trim: Char)(s: String) = s.dropWhile(_ == trim).reverse.dropWhile(_ == trim).reverse

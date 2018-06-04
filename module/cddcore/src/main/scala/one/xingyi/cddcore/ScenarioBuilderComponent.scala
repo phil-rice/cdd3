@@ -42,6 +42,7 @@ class RememberingScenarioAggregator[P, R] extends ScenarioAggregator[P, R] {
     val x = fn(this)
     (x, list.map(_.scenario))
   }
+  def scenarios = list.map(_.scenario)
 }
 
 object NullScenarioAggregator {

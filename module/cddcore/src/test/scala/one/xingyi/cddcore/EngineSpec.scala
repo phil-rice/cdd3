@@ -10,12 +10,12 @@ class EngineSpec extends CddSpec with DecisionTreeFixture {
 
   it should "not smoke" in {
 
-    val e = Engine[String, String]("engine") { implicit agg =>
+    val e = Engine(new UseCase1[String, String]("engine") {
       scenario("a") produces "A" when containsA
       scenario("aw") produces "A"
       scenario("b") produces "B"
       scenario("bw") produces "B"
-    }.asInstanceOf[Engine1[String, String]]
+    }).asInstanceOf[Engine1[String, String]]
 
     val DecisionTree(DecisionNode(dlLogic: SingleScenarioLogic[String, String],
     ConclusionNode(List(sb, sbw), falseLogic: SingleScenarioLogic[String, String]),
@@ -33,7 +33,7 @@ class EngineSpec extends CddSpec with DecisionTreeFixture {
   }
   it should "not smoke with deeper tests" in {
 
-    val e = Engine[String, String]("engine") { implicit agg =>
+    val e = Engine(new UseCase1[String, String]("engine") {
       scenario("a") produces "A" when containsA
       scenario("aw") produces "A"
       scenario("c") produces "C"
@@ -41,7 +41,7 @@ class EngineSpec extends CddSpec with DecisionTreeFixture {
       scenario("b") produces "B" when containsB
       scenario("bw") produces "B"
 
-    }.asInstanceOf[Engine1[String, String]]
+    }).asInstanceOf[Engine1[String, String]]
 
     val DecisionTree(
     DecisionNode(dlLogic: SingleScenarioLogic[String, String],
