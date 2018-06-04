@@ -58,22 +58,22 @@ case class Produces[P, R](data: ScenarioBuilderData[P, R])(implicit a: ScenarioA
   override protected def rawCopyWith(fn: ScenarioBuilderData[P, R] => ScenarioBuilderData[P, R]) = copy(data = data)
   def when(whenFn: P => Boolean) = WithWhen(whenFn, data)
   def because(whenFn: PartialFunction[P, R]) = WithBecause(whenFn, data)
-  override def scenarioReason: ScenarioReason[P, R] = NoReason(data.result)
+  override def scenarioReason: ScenarioLogic[P, R] = NoLogic(data.result)
 }
 
 case class WithWhen[P, R](whenFn: P => Boolean, data: ScenarioBuilderData[P, R])(implicit a: ScenarioAggregator[P, R]) extends ScenarioBuilderComponent[WithWhen[P, R], P, R] {
   override protected def rawCopyWith(fn: ScenarioBuilderData[P, R] => ScenarioBuilderData[P, R]) = copy(data = data)
-  override def scenarioReason: ScenarioReason[P, R] = WithWhenReason(data.result, whenFn)
+  override def scenarioReason: ScenarioLogic[P, R] = WithWhenLogic(data.result, whenFn, None)
 }
 case class WithBecause[P, R](becauseFn: PartialFunction[P, R], data: ScenarioBuilderData[P, R])(implicit a: ScenarioAggregator[P, R]) extends ScenarioBuilderComponent[WithBecause[P, R], P, R] {
   override protected def rawCopyWith(fn: ScenarioBuilderData[P, R] => ScenarioBuilderData[P, R]) = copy(data = data)
-  override def scenarioReason: ScenarioReason[P, R] = WithBecauseReason(data.result, becauseFn)
+  override def scenarioReason: ScenarioLogic[P, R] = WithBecauseLogic(data.result, becauseFn)
 }
 
 abstract class ScenarioBuilderComponent[Self <: ScenarioBuilderComponent[Self, P, R], P, R](implicit a: ScenarioAggregator[P, R]) {
   a.apply(this)
 
-  def scenarioReason: ScenarioReason[P, R]
+  def scenarioReason: ScenarioLogic[P, R]
   def scenario: Scenario[P, R] = Scenario(data.situation, scenarioReason, data.assertions, data.data)
   def data: ScenarioBuilderData[P, R]
   protected def copyWith(fn: ScenarioBuilderData[P, R] => ScenarioBuilderData[P, R])(implicit a: ScenarioAggregator[P, R]): Self = {
