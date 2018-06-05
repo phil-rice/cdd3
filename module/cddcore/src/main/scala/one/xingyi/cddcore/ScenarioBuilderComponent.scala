@@ -58,29 +58,26 @@ case class Produces[P, R](data: ScenarioBuilderData[P, R])(implicit a: ScenarioA
   override protected def rawCopyWith(fn: ScenarioBuilderData[P, R] => ScenarioBuilderData[P, R]) = copy(data = data)
   def when(whenFn: P => Boolean) = WithWhen(whenFn, data)
   def because(whenFn: PartialFunction[P, R]) = WithBecause(whenFn, data)
-  override def scenarioReason: ScenarioLogic[P, R] = ScenarioLogic[P, R](data.result, None, None)
+  override val scenarioReason: SingleScenarioLogic[P, R] = SingleScenarioLogic[P, R](data.result, None, None, data.isDefinedAt)
 }
 
 case class WithWhen[P, R](whenFn: P => Boolean, data: ScenarioBuilderData[P, R])(implicit a: ScenarioAggregator[P, R]) extends ScenarioBuilderComponent[WithWhen[P, R], P, R] {
   override protected def rawCopyWith(fn: ScenarioBuilderData[P, R] => ScenarioBuilderData[P, R]) = copy(data = data)
-  override def scenarioReason: ScenarioLogic[P, R] = ScenarioLogic(data.result, Some(whenFn), None)
+  override val scenarioReason: SingleScenarioLogic[P, R] = SingleScenarioLogic(data.result, Some(whenFn), None, data.isDefinedAt)
 }
 case class WithBecause[P, R](becauseFn: PartialFunction[P, R], data: ScenarioBuilderData[P, R])(implicit a: ScenarioAggregator[P, R]) extends ScenarioBuilderComponent[WithBecause[P, R], P, R] {
   override protected def rawCopyWith(fn: ScenarioBuilderData[P, R] => ScenarioBuilderData[P, R]) = copy(data = data)
-  override def scenarioReason: ScenarioLogic[P, R] = ScenarioLogic(data.result, Some(becauseFn.isDefinedAt), Some(becauseFn.apply))
+  override val scenarioReason: SingleScenarioLogic[P, R] = SingleScenarioLogic(data.result, Some(becauseFn.isDefinedAt), Some(becauseFn.apply), data.isDefinedAt)
 }
 
 abstract class ScenarioBuilderComponent[Self <: ScenarioBuilderComponent[Self, P, R], P, R](implicit a: ScenarioAggregator[P, R]) {
   a.apply(this)
+  import one.xingyi.cddutilities.Arrows._
 
-  def scenarioReason: ScenarioLogic[P, R]
+  def scenarioReason: SingleScenarioLogic[P, R]
   def scenario: Scenario[P, R] = Scenario(data.situation, scenarioReason, data.assertions, data.data)
   def data: ScenarioBuilderData[P, R]
-  protected def copyWith(fn: ScenarioBuilderData[P, R] => ScenarioBuilderData[P, R])(implicit a: ScenarioAggregator[P, R]): Self = {
-    val result = rawCopyWith(fn)
-    a(result)
-    result
-  }
+  protected def copyWith(fn: ScenarioBuilderData[P, R] => ScenarioBuilderData[P, R])(implicit a: ScenarioAggregator[P, R]): Self = rawCopyWith _ sideeffect a apply fn
   protected def rawCopyWith(fn: ScenarioBuilderData[P, R] => ScenarioBuilderData[P, R]): Self
   def comment(string: String): Self = copyWith(_.copy(comment = Some(string)))
   def title(string: String): Self = copyWith(_.copy(title = Some(string)))
