@@ -16,6 +16,7 @@ object CodeHolder {
     }
   }
 
+
   def partialFnToStringToNiceToString(s: String) = {
     val firstIndex = s.indexOf("case")
     if (firstIndex == -1)
@@ -25,9 +26,18 @@ object CodeHolder {
       if (secondIndex == -1)
         None
       else
-        Some("{"+s.substring(firstIndex, secondIndex).trim +"}")
+        Some("{" + s.substring(firstIndex, secondIndex).trim + "}")
     }
   }
+  def prettyDescription(description: String) = description match {
+    case d if description.contains(
+      "SerialVersionUID(value = 0) final <synthetic> class $anonfun extends scala.runtime.AbstractPartialFunction[") => CodeHolder.partialFnToStringToNiceToString(d).getOrElse(d)
+    case d if description.startsWith("((") && description.endsWith("})") && description.contains("match") => {
+      Strings.from("case")(d).map(Strings.removeLast(2)).map(_.trim).getOrElse(d)
+    }
+    case d => d
+  }
+
 
 }
 
@@ -38,15 +48,7 @@ case class CodeHolder[Fn](val fn: Fn, val description: String, val comment: Stri
     case _ => false
   }
 
-  def prettyDescription = description match {
-    case d if description.contains(
-      "SerialVersionUID(value = 0) final <synthetic> class $anonfun extends scala.runtime.AbstractPartialFunction[") => CodeHolder.partialFnToStringToNiceToString(d).getOrElse(d)
-    case d if description.startsWith("((") && description.endsWith("})") && description.contains("match") => {
-      Strings.from("case")(d).map(Strings.removeLast(2)).map(_.trim).getOrElse(d)
-    }
-    case d => d
-  }
-
+  def prettyDescription = CodeHolder.prettyDescription(description)
   override def hashCode() = description.hashCode()
 }
 
@@ -56,10 +58,10 @@ trait AbstractCodeHolder {
   def comment: String
 
   private val index = description.indexOf("=>");
-//  lazy val pretty = (index match {
-//    case -1 => description
-//    case i => description.substring(index + 3, description.length - 1)
-//  }).replace(".this.", ".").replace(".apply(", "(")
+  //  lazy val pretty = (index match {
+  //    case -1 => description
+  //    case i => description.substring(index + 3, description.length - 1)
+  //  }).replace(".this.", ".").replace(".apply(", "(")
 
   val parameters = index match {
     case -1 => description

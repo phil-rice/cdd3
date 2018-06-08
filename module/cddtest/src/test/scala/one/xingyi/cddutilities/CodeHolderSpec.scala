@@ -40,6 +40,7 @@ class CodeHolderSpec extends CddSpec {
   it should "have a decent prettyDescription for partial functions" in {
     CodeHolder.fnToHolder[String => String] { case x => x.toString }.prettyDescription shouldBe "case (x @ _) => x.toString()"
     CodeHolder.fnToHolder[Int => String] { case x: Int => x.toString }.prettyDescription shouldBe "case (x @ (_: Int)) => x.toString()"
+    CodeHolder.fnToHolder[PartialFunction[(Int, Int), String]] { case (l, r) => l + "_" + r }.prettyDescription shouldBe "{case (_1: Int, _2: Int)(Int, Int)((l @ _), (r @ _)) => l.+(\"_\").+(r)}"
   }
 
 }
