@@ -9,7 +9,7 @@ trait HasScenarios[T[_, _]] {
   def allScenarios[P, R](t: T[P, R]): List[Scenario[P, R]]
 }
 object NoDefaultDefinedException {
-  def throwWith[P]: PartialFunction[P, Nothing] = {case p => throw new NoDefaultDefinedException(p)}
+  def throwWith[P]: PartialFunction[P, Nothing] = {case p if false => throw new NoDefaultDefinedException(p)}
 }
 case class NoDefaultDefinedException(p: Any) extends RuntimeException(s"Calling apply using $p without a default defined")
 
