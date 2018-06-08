@@ -67,12 +67,12 @@ class Tennis {
   }
 }
 
-object Tennis extends Tennis with App{
+object Tennis extends Tennis with App {
   dump
   private val root: DecisionTreeNode[(Int, Int), String] = tennis.asInstanceOf[Engine1[(Int, Int), String]].dt.root
   println(EnginePrinter(root))
   println
   val x = LeftRightTree(root)
-println(x)
+  println(x)
 }
 

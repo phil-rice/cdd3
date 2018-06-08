@@ -1,6 +1,6 @@
 package one.xingyi.cddcore
 import one.xingyi.cddscenario._
-import one.xingyi.cddutilities.DefinedInSourceCodeAt
+import one.xingyi.cddutilities.{DefinedInSourceCodeAt, IdMaker}
 
 case class RawSituation2[P, R](data: ScenarioBuilderData[P, R])(implicit a: ScenarioAggregator[P, R]) {
   def produces(r: R): Produces[P, R] = {

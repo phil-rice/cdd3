@@ -80,6 +80,7 @@ val cddexamples = (project in file("module/cddexamples")).
 val cddtest = (project in file("module/cddtest")).
   dependsOn(cddutilities % "test->test;compile->compile").
   dependsOn(cddcore % "test->test;compile->compile").
+  dependsOn(cddscenario % "test->test;compile->compile").
   settings(publishSettings)
 
 val cdd3 = (project in file(".")).

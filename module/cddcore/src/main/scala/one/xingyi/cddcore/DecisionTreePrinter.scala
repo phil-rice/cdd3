@@ -14,7 +14,7 @@ object EnginePrinter {
     import one.xingyi.cddutilities.DefinedInSourceCodeAtLanguage._
     override def apply[P: ShortPrint, R: ShortPrint](node: DecisionTreeNode[P, R], parents: List[DecisionTreeNode[P, R]]) =
       node match {
-        case DecisionNode(logic, left, right) => pIndent(IndentAnd(parents.size, s"dt(${node.logic.definedInSourceCodeAt}\n"))
+        case DecisionNode(logic, left, right) => pIndent(IndentAnd(parents.size, s"dt( ${node.logic.definedInSourceCodeAt}\n"))
         case ConclusionNode(scenarios, logic) => pIndent(IndentAnd(parents.size, s"cn(${node.logic.definedInSourceCodeAt} + ${ scenarios.map(s =>
           s.data.definedInSourceCodeAt +"/" +s.situation +"=>" + s.logic.result)}\n"))
       }

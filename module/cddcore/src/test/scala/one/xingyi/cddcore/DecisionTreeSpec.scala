@@ -6,7 +6,7 @@ import one.xingyi.cddutilities.DefinedInSourceCodeAt
 trait DecisionTreeLanguage[P, R] {
   val cEmpty = ConclusionNode[P, R](List(), ScenarioLogic.empty)
   def s(p: P, r: R) = Scenario[P, R](p, ScenarioLogic.empty, List(), EngineComponentData(DefinedInSourceCodeAt.definedInSourceCodeAt(), Some(s"$p => $r")))
-  def s(p: P, r: R, b: P => Boolean) = Scenario[P, R](p, SingleScenarioLogic[P, R](Some(r), Some(b), None, DefinedInSourceCodeAt.definedInSourceCodeAt()), List(), EngineComponentData(DefinedInSourceCodeAt.definedInSourceCodeAt(), Some(s"$p => $r")))
+  def s(p: P, r: R, b: P => Boolean) = Scenario[P, R](p, SingleScenarioLogic[P, R](Some(r), Some(b), None, DefinedInSourceCodeAt.definedInSourceCodeAt(), ""), List(), EngineComponentData(DefinedInSourceCodeAt.definedInSourceCodeAt(), Some(s"$p => $r")))
 
   def c(s: Scenario[P, R], ss: Scenario[P, R]*) = ConclusionNode(s :: ss.toList, s.logic)
   def c(logic: ScenarioLogic[P, R], ss: Scenario[P, R]*) = ConclusionNode(ss.toList, logic)
