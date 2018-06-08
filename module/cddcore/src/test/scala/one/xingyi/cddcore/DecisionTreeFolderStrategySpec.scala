@@ -1,6 +1,5 @@
 package one.xingyi.cddcore
-import one.xingyi.cddscenario.Scenario
-import one.xingyi.cddscenario.ScenarioLogic.CompositeScenarioLogic
+import one.xingyi.cddscenario.{CompositeScenarioLogic, Scenario}
 import one.xingyi.cddutilities.CddSpec
 
 class AbstractDtFolderStrategySpec(val fold: DTFolderStrategy) extends CddSpec with DecisionTreeFixture {

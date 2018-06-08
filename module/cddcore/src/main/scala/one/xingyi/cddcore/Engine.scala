@@ -1,7 +1,5 @@
 package one.xingyi.cddcore
-import one.xingyi.cddscenario.ScenarioLogic.ScenarioLogic
 import one.xingyi.cddscenario.{HasScenarios, Scenario, ScenarioLogic}
-import one.xingyi.cddutilities.DefinedInSourceCodeAt
 
 import scala.language.higherKinds
 

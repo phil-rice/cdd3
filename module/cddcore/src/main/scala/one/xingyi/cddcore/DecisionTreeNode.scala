@@ -1,6 +1,5 @@
 package one.xingyi.cddcore
 
-import one.xingyi.cddscenario.ScenarioLogic.ScenarioLogic
 import one.xingyi.cddscenario.{Scenario, ScenarioLogic}
 import one.xingyi.cddutilities.Arrows._
 import one.xingyi.cddutilities.Lens
@@ -76,7 +75,7 @@ object FolderData {
 
 case class FolderData[P, R](conclusionNode: ConclusionNode[P, R], scenario: Scenario[P, R]) {
   private def findFails(list: List[Scenario[P, R]])(code: P => R) = list.filterNot(s => Try(s.acceptResult(s.situation, code(s.situation))) == Success(true))
-  lazy val (sAccepts, sRejects) = (scenario :: conclusionNode.scenarios).partition(s => scenario.logic.isDefinedAt(s.situation))
+  lazy val (sAccepts, sRejects) = (scenario :: conclusionNode.scenarios).partition(s => scenario.logic.fn.isDefinedAt(s.situation))
   lazy val (cAccepts, cRejects) = (scenario :: conclusionNode.scenarios).partition(s => conclusionNode.logic.fn.isDefinedAt(s.situation))
   lazy val emptyScenarios = List[Scenario[P, R]]()
   lazy val sAcceptsFailUsingScenarioLogic = findFails(sAccepts)(scenario.logic.fn)

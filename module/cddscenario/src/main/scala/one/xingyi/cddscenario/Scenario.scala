@@ -1,8 +1,5 @@
 package one.xingyi.cddscenario
 
-import one.xingyi.cddscenario.ScenarioLogic.SingleScenarioLogic
-import one.xingyi.cddutilities.{DefinedInSourceCodeAt, ShortPrint}
-
 import scala.language.higherKinds
 
 trait HasScenarios[T[_, _]] {

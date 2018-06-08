@@ -1,5 +1,4 @@
 package one.xingyi.cddcore
-import one.xingyi.cddscenario.ScenarioLogic.{ScenarioLogic, SingleScenarioLogic}
 import one.xingyi.cddscenario._
 import one.xingyi.cddutilities.DefinedInSourceCodeAt
 

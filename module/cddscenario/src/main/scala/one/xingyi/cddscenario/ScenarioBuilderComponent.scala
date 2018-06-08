@@ -2,7 +2,6 @@ package one.xingyi.cddscenario
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import one.xingyi.cddscenario.ScenarioLogic.SingleScenarioLogic
 import one.xingyi.cddutilities.{DefinedInSourceCodeAt, SingleDefinedInSourceCodeAt}
 
 import scala.annotation.implicitNotFound

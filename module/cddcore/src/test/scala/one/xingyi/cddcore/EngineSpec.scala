@@ -1,5 +1,5 @@
 package one.xingyi.cddcore
-import one.xingyi.cddscenario.ScenarioLogic.SingleScenarioLogic
+import one.xingyi.cddscenario.SingleScenarioLogic
 import one.xingyi.cddutilities.CddSpec
 class EngineSpec extends CddSpec with DecisionTreeFixture {
 
