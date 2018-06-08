@@ -1,7 +1,9 @@
 package one.xingyi.cddcore
-import one.xingyi.cddutilities.CddSpec
+import one.xingyi.cddscenario.Scenario
+import one.xingyi.cddscenario.ScenarioLogic.CompositeScenarioLogic
+import one.xingyi.cddutilities.{CddSpec, DefinedInSourceCodeAtLanguage}
 
-class DecisionTreeSimpleFoldSpec extends CddSpec with DecisionTreeFixture {
+class DecisionTreeSimpleFoldSpec extends CddSpec with DecisionTreeFixture with DefinedInSourceCodeAtLanguage{
 
   val x = implicitly[DecisionTreeFolder[String, String]]
 
@@ -17,7 +19,9 @@ class DecisionTreeSimpleFoldSpec extends CddSpec with DecisionTreeFixture {
   behavior of "Decision tree folding"
 
   it should "fold an empty list of scenarios and just have the default" in {
-    folder(List()) shouldBe cEmpty
+    val cE = folder(List()).asInstanceOf[ConclusionNode[String, String]]
+    cE.logic.definedInSourceCodeAt.toString shouldBe "(DecisionTreeNode.scala:47)"
+    cE.scenarios shouldBe List()
   }
   it should "fold a scenario and have a conclusion with just that scenario" in {
     folder(List(snormal)) shouldBe concNormal
@@ -48,7 +52,7 @@ class DecisionTreeSimpleFoldSpec extends CddSpec with DecisionTreeFixture {
   }
 
   it should "make a composite reason node if new reason given" in {
-    folder(List(sawa, saxwx)) shouldBe ConclusionNode(List(sawa, saxwx), sawa.logic or saxwx.logic)
+    folder(List(sawa, saxwx)) shouldBe ConclusionNode(List(sawa, saxwx), CompositeScenarioLogic(Seq(sawa.logic, saxwx.logic)))
     folder(List(sawa, saxww, saxwx)) shouldBe ConclusionNode(List(sawa, saxww, saxwx), CompositeScenarioLogic(Seq(sawa.logic, saxww.logic, saxwx.logic)))
     folder(List(sawa, saxww, saxwx, sa)) shouldBe ConclusionNode(List(sawa, saxww, saxwx, sa), CompositeScenarioLogic(Seq(sawa.logic, saxww.logic, saxwx.logic)))
     folder(List(sa, sawa, saxww, saxwx)) shouldBe ConclusionNode(List(sa, sawa, saxww, saxwx), CompositeScenarioLogic(Seq(sawa.logic, saxww.logic, saxwx.logic)))

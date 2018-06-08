@@ -1,6 +1,7 @@
 package one.xingyi.cddexamples
 
 import one.xingyi.cddcore._
+import one.xingyi.cddscenario.InternetDocument
 class Tennis {
   val definition = InternetDocument("CodingDojo", "http://codingdojo.org/cgi-bin/wiki.pl?KataTennis")
   val wikipedia = InternetDocument("Wikipedia", "http://en.wikipedia.org/wiki/Tennis_score")

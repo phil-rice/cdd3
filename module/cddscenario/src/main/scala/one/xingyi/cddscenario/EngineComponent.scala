@@ -1,4 +1,5 @@
-package one.xingyi.cddcore
+package one.xingyi.cddscenario
+
 import one.xingyi.cddutilities.DefinedInSourceCodeAt
 
 trait EngineComponent[P, R] {

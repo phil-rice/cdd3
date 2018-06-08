@@ -1,4 +1,4 @@
-package one.xingyi.cddcore
+package one.xingyi.cddscenario
 
 trait CddIssue
 trait ScenarioAssertion[P, R] extends ((P, R) => Either[CddIssue, Boolean]){

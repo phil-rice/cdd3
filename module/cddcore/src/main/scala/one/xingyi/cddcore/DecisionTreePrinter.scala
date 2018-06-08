@@ -11,6 +11,7 @@ object EnginePrinter {
   def apply[P: ShortPrint, R: ShortPrint](dn: DecisionTreeNode[P, R])(implicit printer: EnginePrinter): String =
     LeftRightTree(dn).fold(lrt => printer(lrt.t, lrt.parents), lrt => Strings.blanks(lrt.parents.size-1) + " else\n")
   implicit def defaultPrinter(implicit pIndent: ShortPrint[IndentAnd[String]]): EnginePrinter = new EnginePrinter {
+    import one.xingyi.cddutilities.DefinedInSourceCodeAtLanguage._
     override def apply[P: ShortPrint, R: ShortPrint](node: DecisionTreeNode[P, R], parents: List[DecisionTreeNode[P, R]]) =
       node match {
         case DecisionNode(logic, left, right) => pIndent(IndentAnd(parents.size, s"dt(${node.logic.definedInSourceCodeAt}\n"))

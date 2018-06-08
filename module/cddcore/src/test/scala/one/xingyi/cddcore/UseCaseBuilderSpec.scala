@@ -1,4 +1,5 @@
 package one.xingyi.cddcore
+import one.xingyi.cddscenario.Scenario
 import one.xingyi.cddutilities.CddSpec
 
 import scala.language.reflectiveCalls
@@ -13,8 +14,8 @@ class UseCaseBuilderSpec extends CddSpec {
       val s2 = scenario(2) produces "2"
       list = List(s1.scenario, s2.scenario)
     }
-    uc.s1.data.isDefinedAt.toString shouldBe "(UseCaseBuilderSpec.scala:12)"
-    uc.s2.data.isDefinedAt.toString shouldBe "(UseCaseBuilderSpec.scala:13)"
+    uc.s1.data.isDefinedAt.toString shouldBe "(UseCaseBuilderSpec.scala:13)"
+    uc.s2.data.isDefinedAt.toString shouldBe "(UseCaseBuilderSpec.scala:14)"
     uc.allScenarios shouldBe List(uc.s1.scenario, uc.s2.scenario)
   }
 }

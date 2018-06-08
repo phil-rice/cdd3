@@ -1,6 +1,6 @@
 package one.xingyi.cddcore
+import one.xingyi.cddscenario.ScenarioLogic.SingleScenarioLogic
 import one.xingyi.cddutilities.CddSpec
-import UntypedScenarioBuilder._
 class EngineSpec extends CddSpec with DecisionTreeFixture {
 
   behavior of "Engine smoke tests"

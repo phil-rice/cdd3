@@ -1,4 +1,5 @@
 package one.xingyi.cddcore
+import one.xingyi.cddscenario._
 import one.xingyi.cddutilities.DefinedInSourceCodeAt
 
 case class RawSituation2[P, R](data: ScenarioBuilderData[P, R])(implicit a: ScenarioAggregator[P, R]) {

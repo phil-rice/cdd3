@@ -1,18 +1,19 @@
-package one.xingyi.cddcore
+package one.xingyi.cddscenario
+
 import one.xingyi.cddutilities.CddSpec
 
 import scala.language.higherKinds
 
 
 class ScenarioBuilderSpec extends CddSpec {
-  import UntypedScenarioBuilder._
+  import one.xingyi.cddscenario.UntypedScenarioBuilder._
   behavior of "Scenario Builder"
 
 
   it should "have a is defined at" in {
     val (x, scenarios) = new RememberingScenarioAggregator[Int, String].withAggreator { implicit a =>
       val x = scenario(2) produces "2"
-      x.data.isDefinedAt.toString shouldBe "(ScenarioBuilderSpec.scala:14)"
+      x.data.isDefinedAt.toString shouldBe "(ScenarioBuilderSpec.scala:15)"
       x
     }
     scenarios shouldBe List(x.scenario)
@@ -29,10 +30,10 @@ class ScenarioBuilderSpec extends CddSpec {
     }
     scenarios shouldBe result.map(_.scenario)
     scenarios.map(_.data.definedInSourceCodeAt.toString) shouldBe List(
-      "(ScenarioBuilderSpec.scala:24)",
       "(ScenarioBuilderSpec.scala:25)",
       "(ScenarioBuilderSpec.scala:26)",
-      "(ScenarioBuilderSpec.scala:27)"
+      "(ScenarioBuilderSpec.scala:27)",
+      "(ScenarioBuilderSpec.scala:28)"
     )
   }
 

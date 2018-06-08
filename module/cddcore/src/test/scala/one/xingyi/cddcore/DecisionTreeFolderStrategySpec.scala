@@ -1,7 +1,7 @@
 package one.xingyi.cddcore
+import one.xingyi.cddscenario.Scenario
+import one.xingyi.cddscenario.ScenarioLogic.CompositeScenarioLogic
 import one.xingyi.cddutilities.CddSpec
-
-import scala.reflect.ClassTag
 
 class AbstractDtFolderStrategySpec(val fold: DTFolderStrategy) extends CddSpec with DecisionTreeFixture {
 
@@ -14,7 +14,7 @@ class AbstractDtFolderStrategySpec(val fold: DTFolderStrategy) extends CddSpec w
   def foldClashes[P, R](c: ConclusionNode[P, R], s: Scenario[P, R]) = {
     val fd = FolderData(c, s)
     isDefinedAt(c, s) shouldBe true
-    intercept[CannotAddScenarioBecauseClashes[P,R]](fold(fd))
+    intercept[CannotAddScenarioBecauseClashes[P, R]](fold(fd))
   }
 
 
@@ -133,7 +133,8 @@ class AddScenarioMergeConditionSpec extends AbstractDtFolderStrategySpec(AddScen
   }
 
   it should "create a conclusion with the scenario merging the logic" in {
-    foldit(c(saba), sawa) shouldBe ConclusionNode(List(saba, sawa), saba.logic or sawa.logic)
+
+    foldit(c(saba), sawa) shouldBe ConclusionNode(List(saba, sawa), CompositeScenarioLogic(Seq(saba.logic, sawa.logic)))
   }
 }
 
@@ -236,7 +237,7 @@ class ScenariosClashSpec extends AbstractDtFolderStrategySpec(ScenariosClash) wi
 
 
   it should "throw  a decision node  " in {
-//    foldit(c(sbbb), sabBecomesA) shouldBe ""
+    //    foldit(c(sbbb), sabBecomesA) shouldBe ""
     foldClashes(c(sbbb), sabBecomesA) shouldBe CannotAddScenarioBecauseClashes(sabBecomesA, List(sbbb))
   }
 

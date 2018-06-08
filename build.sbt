@@ -62,8 +62,13 @@ lazy val utilitiesSettings = publishSettings ++ Seq(
 val cddutilities = (project in file("module/cddutilities")).
   settings(utilitiesSettings)
 
+val cddscenario = (project in file("module/cddscenario")).
+  dependsOn(cddutilities % "test->test;compile->compile").
+  settings(publishSettings)
+
 val cddcore = (project in file("module/cddcore")).
   dependsOn(cddutilities % "test->test;compile->compile").
+  dependsOn(cddscenario % "test->test;compile->compile").
   settings(publishSettings)
 
 val cddexamples = (project in file("module/cddexamples")).
@@ -77,10 +82,7 @@ val cddtest = (project in file("module/cddtest")).
   dependsOn(cddcore % "test->test;compile->compile").
   settings(publishSettings)
 
-
-
-
 val cdd3 = (project in file(".")).
   settings(publishSettings).
   settings(publishArtifact := false).
-  aggregate(cddcore, cddutilities, cddtest)
+  aggregate(cddcore, cddutilities, cddscenario, cddtest)

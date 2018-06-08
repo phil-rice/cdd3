@@ -1,5 +1,7 @@
 package one.xingyi.cddcore
 
+import one.xingyi.cddscenario.ScenarioLogic.ScenarioLogic
+import one.xingyi.cddscenario.{Scenario, ScenarioLogic}
 import one.xingyi.cddutilities.Arrows._
 import one.xingyi.cddutilities.Lens
 
@@ -19,7 +21,7 @@ case class ConclusionNode[P, R](scenarios: List[Scenario[P, R]], logic: Scenario
 
 case class DecisionNode[P, R](logic: ScenarioLogic[P, R], left: DecisionTreeNode[P, R], right: DecisionTreeNode[P, R]) extends DecisionTreeNode[P, R] {
   import DecisionTreeNode._
-  override def findLens(p: P): Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]] = logic.isDefinedAt(p) match {
+  override def findLens(p: P): Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]] = logic.fn.isDefinedAt(p) match {
     case true => nodeToDNL andThen DNLtoRight[P, R] andThen right.findLens(p)
     case false => nodeToDNL andThen DNLtoLeft[P, R] andThen left.findLens(p)
   }
@@ -75,9 +77,9 @@ object FolderData {
 case class FolderData[P, R](conclusionNode: ConclusionNode[P, R], scenario: Scenario[P, R]) {
   private def findFails(list: List[Scenario[P, R]])(code: P => R) = list.filterNot(s => Try(s.acceptResult(s.situation, code(s.situation))) == Success(true))
   lazy val (sAccepts, sRejects) = (scenario :: conclusionNode.scenarios).partition(s => scenario.logic.isDefinedAt(s.situation))
-  lazy val (cAccepts, cRejects) = (scenario :: conclusionNode.scenarios).partition(s => conclusionNode.logic.isDefinedAt(s.situation))
+  lazy val (cAccepts, cRejects) = (scenario :: conclusionNode.scenarios).partition(s => conclusionNode.logic.fn.isDefinedAt(s.situation))
   lazy val emptyScenarios = List[Scenario[P, R]]()
-  lazy val sAcceptsFailUsingScenarioLogic = findFails(sAccepts)(scenario.logic)
+  lazy val sAcceptsFailUsingScenarioLogic = findFails(sAccepts)(scenario.logic.fn)
 }
 
 
@@ -112,6 +114,7 @@ case object AddScenarioReplaceLogic extends DFFolderSimpleStrategy {
   def apply[P, R](c: ConclusionNode[P, R], s: Scenario[P, R]): DecisionTreeNode[P, R] = c.copy(scenarios = c.scenarios :+ s, logic = s.logic)
 }
 case object AddScenarioMergeCondition extends DFFolderSimpleStrategy {
+  import one.xingyi.cddutilities.SemiGroupLanguage._
   def isDefinedAt[P, R](c: ConclusionNode[P, R], s: Scenario[P, R]): Boolean = c.logic.hasCondition && s.logic.hasCondition && c.accept(s)
   def apply[P, R](c: ConclusionNode[P, R], s: Scenario[P, R]): DecisionTreeNode[P, R] = c.copy(scenarios = c.scenarios :+ s, logic = c.logic or s.logic)
 }

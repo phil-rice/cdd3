@@ -1,7 +1,9 @@
-package one.xingyi.cddcore
+package one.xingyi.cddscenario
+
 import java.util.concurrent.atomic.AtomicInteger
 
-import one.xingyi.cddutilities.DefinedInSourceCodeAt
+import one.xingyi.cddscenario.ScenarioLogic.SingleScenarioLogic
+import one.xingyi.cddutilities.{DefinedInSourceCodeAt, SingleDefinedInSourceCodeAt}
 
 import scala.annotation.implicitNotFound
 
@@ -24,7 +26,7 @@ trait UntypedScenarioBuilder extends IdMaker {
 
 
 case class ScenarioBuilderData[P, R](id: Int, situation: P, result: Option[R] = None, title: Option[String] = None, comment: Option[String] = None, assertions: List[ScenarioAssertion[P, R]] = List(),
-                                     references: List[Reference] = List(), isDefinedAt: DefinedInSourceCodeAt = DefinedInSourceCodeAt.definedInSourceCodeAt()) {
+                                     references: List[Reference] = List(), isDefinedAt: SingleDefinedInSourceCodeAt = DefinedInSourceCodeAt.definedInSourceCodeAt()) {
   def data: EngineComponentData = EngineComponentData(isDefinedAt, title, comment, List(), references)
 }
 
