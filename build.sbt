@@ -3,15 +3,11 @@
 val versions = new {
   val cdd = "0.1"
   val scala = "2.12.2"
-  //  val scala = "2.12.1"
-  val finatra = "18.2.0"
   val scalatest = "3.0.5"
   val mockito = "1.10.19"
-  val guice = "4.0"
-  val play = "2.5.12"
-  val scalapact = "2.1.3"
   val junit = "4.12"
   val json4s = "3.5.3"
+  val mustache = "0.9.5"
 }
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
@@ -55,15 +51,27 @@ lazy val publishSettings = commonSettings ++ Seq(
       Some("releases" at nexus + "service/local/staging/deploy/maven2")
   })
 
+
 lazy val utilitiesSettings = publishSettings ++ Seq(
   libraryDependencies += "org.scala-lang" % "scala-reflect" % versions.scala
 )
-lazy val json4sSettings = commonSettings ++ Seq(
+
+lazy val json4sSettings = publishSettings ++ Seq(
   libraryDependencies += "org.json4s" %% "json4s-native" % versions.json4s
 )
+lazy val mustacheSettings = publishSettings ++ Seq(
+  libraryDependencies += "com.github.spullara.mustache.java" % "scala-extensions-2.11" % versions.mustache
+)
+
 
 val cddutilities = (project in file("module/cddutilities")).
   settings(utilitiesSettings)
+
+
+val cddmustache = (project in file("module/cddmustache")).
+  dependsOn(cddutilities % "test->test;compile->compile").
+  aggregate(cddutilities).
+  settings(mustacheSettings)
 
 val cddjson4s = (project in file("module/cddjson4s")).
   dependsOn(cddutilities % "test->test;compile->compile").
@@ -82,8 +90,8 @@ val cddexamples = (project in file("module/cddexamples")).
   dependsOn(cddutilities % "test->test;compile->compile").
   dependsOn(cddengine % "test->test;compile->compile").
   dependsOn(cddjson4s % "test->test;compile->compile").
+  dependsOn(cddmustache % "test->test;compile->compile").
   settings(publishSettings)
-
 
 val cddtest = (project in file("module/cddtest")).
   dependsOn(cddutilities % "test->test;compile->compile").

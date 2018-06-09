@@ -19,7 +19,7 @@ class DecisionTreeSimpleFoldSpec extends CddSpec with DecisionTreeFixture with D
 
   it should "fold an empty list of scenarios and just have the default" in {
     val cE = folder(List()).asInstanceOf[ConclusionNode[String, String]]
-    cE.logic.definedInSourceCodeAt.toString shouldBe "(DecisionTreeNode.scala:46)"
+    cE.logic.definedInSourceCodeAt.toString shouldBe "(DecisionTreeNode.scala:53)"
     cE.scenarios shouldBe List()
   }
   it should "fold a scenario and have a conclusion with just that scenario" in {

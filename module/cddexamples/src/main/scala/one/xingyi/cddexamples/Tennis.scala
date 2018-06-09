@@ -2,6 +2,8 @@ package one.xingyi.cddexamples
 
 import one.xingyi.cddengine._
 import one.xingyi.cddscenario.InternetDocument
+import one.xingyi.cddutilities.LeftRightTree
+import one.xingyi.cddutilities.json.JsonValue
 import org.json4s.JsonAST.JValue
 class Tennis {
   val definition = InternetDocument("CodingDojo", "http://codingdojo.org/cgi-bin/wiki.pl?KataTennis")
@@ -69,11 +71,19 @@ class Tennis {
 }
 
 object Tennis extends Tennis with App {
-  import com.ing.scrooge.json4s.Json4s._
-  dump
+  import one.xingyi.json4s.Json4s._
+//  dump
   private val tree = tennis.asInstanceOf[Engine1[(Int, Int), String]].dt
-  val printer = DecisionTreePrinter.printer[JValue]
-  println(printer(tree))
+  val printer = DecisionTreePrinter.toJson[JValue]
+//  println(printer(tree))
+  import one.xingyi.cddmustache._
+  implicit val template = Mustache.withTemplate("main.template.mustache")
+  implicit def toHtml[P, R] = MustacheToHtml[JValue, LeftRightTree[DecisionNode[P, R], DecisionTreeNode[P, R]]]("decisiontree.mustache", "Tennis")
+  println
+  println
+  println
+  println
+  println(DecisionTreePrinter.toHtml(tree))
   //  println(DecisionNodePrinter(root))
   //  println
   //  val x = LeftRightTree(root)

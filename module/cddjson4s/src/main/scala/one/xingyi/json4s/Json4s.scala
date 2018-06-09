@@ -1,4 +1,4 @@
-package com.ing.scrooge.json4s
+package one.xingyi.json4s
 
 import one.xingyi.cddutilities.json._
 import org.json4s.JsonAST.{JArray, JObject}

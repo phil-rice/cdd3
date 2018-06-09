@@ -1,6 +1,6 @@
-package com.ing.scrooge.json4s
+package one.xingyi.json4s
 
 import one.xingyi.cddutilities.JsonSpec
+import one.xingyi.json4s.Json4s._
 import org.json4s.JValue
-import Json4s._
 class Json4sSpec extends JsonSpec[JValue]
