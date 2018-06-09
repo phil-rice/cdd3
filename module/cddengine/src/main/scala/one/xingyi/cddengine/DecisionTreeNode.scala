@@ -2,12 +2,13 @@ package one.xingyi.cddengine
 
 import one.xingyi.cddscenario.{Scenario, ScenarioLogic}
 import one.xingyi.cddutilities.Arrows._
-import one.xingyi.cddutilities.Lens
+import one.xingyi.cddutilities.{LeftRightTree, Lens}
 
 import scala.util.{Failure, Success, Try}
 
+
 sealed trait DecisionTreeNode[P, R] {
-  def logic: ScenarioLogic[P,R]
+  def logic: ScenarioLogic[P, R]
   def findLens(p: P): Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]]
   def findLensAndCnLens = use(findLens)(lens => (lens, lens andThen DecisionTreeNode.nodeToConcL))
 }
@@ -34,6 +35,12 @@ object DecisionTreeNode {
   def nodeToConcL[P, R] = Lens.cast[DecisionTreeNode[P, R], ConclusionNode[P, R]]
   def DNLtoLeft[P, R] = Lens[DecisionNode[P, R], DecisionTreeNode[P, R]](_.left, (dn, c) => dn.copy(left = c))
   def DNLtoRight[P, R] = Lens[DecisionNode[P, R], DecisionTreeNode[P, R]](_.right, (dn, c) => dn.copy(right = c))
+
+  def makeLrt[P, R](node: DecisionTreeNode[P, R], parents: List[DecisionNode[P, R]] = List()): LeftRightTree[DecisionNode[P, R], DecisionTreeNode[P, R]] = node match {
+    case d@DecisionNode(_, left, right) => LeftRightTree(node, parents, Some((makeLrt(left, d :: parents), makeLrt(right, d :: parents))))
+    case c: ConclusionNode[P, R] => LeftRightTree(c, parents, None)
+  }
+
 }
 
 sealed trait DecisionIssue[P, R] {
@@ -57,12 +64,12 @@ case class SimpleDefaultFunction[P, R](fn: P => R) extends DefaultFunction[P, R]
 }
 object DecisionTreeFolder {
   implicit def folder[P, R](implicit conclusionNodeEditor: ConclusionAndScenarioStrategyFinder[P, R]): DecisionTreeFolder[P, R] = { (tree, s) =>
-    val (lens, lensCn) = tree.root.findLensAndCnLens(s.situation)
-    Try(conclusionNodeEditor.makeReplacementNode apply(lensCn(tree.root), s)) match {
-      case Success(node) => DecisionTree(lens.set(tree.root, node), tree.issues)
-      case Failure(e: DecisionIssue[_, _]) => DecisionTree(tree.root, tree.issues :+ e.asInstanceOf[DecisionIssue[P, R]])
-      case Failure(e) => throw e
-    }
+  val (lens, lensCn) = tree.root.findLensAndCnLens(s.situation)
+  Try(conclusionNodeEditor.makeReplacementNode apply(lensCn(tree.root), s)) match {
+    case Success(node) => DecisionTree(lens.set(tree.root, node), tree.issues)
+    case Failure(e: DecisionIssue[_, _]) => DecisionTree(tree.root, tree.issues :+ e.asInstanceOf[DecisionIssue[P, R]])
+    case Failure(e) => throw e
+  }
   }
   def apply[P, R](list: List[Scenario[P, R]])(implicit decisionTreeFolder: DecisionTreeFolder[P, R], default: DefaultFunction[P, R]): DecisionTree[P, R] =
     list.foldLeft[DecisionTree[P, R]](DecisionTree.empty)(decisionTreeFolder)

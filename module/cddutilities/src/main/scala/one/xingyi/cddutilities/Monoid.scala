@@ -13,12 +13,15 @@ object SemiGroup {
 
 trait SemiGroupLanguage {
   implicit class SemiGroupops[T](t: T)(implicit semiGroup: SemiGroup[T]) {
+    def |+|(t1: T): T = semiGroup.add(t, t1)
     def or(t1: T): T = semiGroup.add(t, t1)
   }
   implicit class SeqOfSemiGroups[T](ts: Seq[T])(implicit semiGroup: SemiGroup[T]) {
     def orAll = ts.reduce(semiGroup.add)
   }
 }
+
+
 object SemiGroupLanguage extends SemiGroupLanguage
 
 trait Zero[T] {
@@ -37,10 +40,9 @@ object Monoid {
     override def zero: T = z.zero
   }
 }
-trait MonoidLanguage {
-  implicit class MonoidOps[T](t: T)(implicit monoid: Monoid[T]) {
-    def |+|(t1: T): T = monoid.add(t, t1)
-  }
+trait MonoidLanguage extends SemiGroupLanguage{
+//  implicit class MonoidOps[T](t: T)(implicit monoid: Monoid[T]) {
+//  }
 
 }
 object MonoidLanguage extends MonoidLanguage {

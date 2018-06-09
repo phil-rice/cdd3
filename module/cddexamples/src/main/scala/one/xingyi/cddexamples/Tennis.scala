@@ -2,6 +2,7 @@ package one.xingyi.cddexamples
 
 import one.xingyi.cddengine._
 import one.xingyi.cddscenario.InternetDocument
+import org.json4s.JsonAST.JValue
 class Tennis {
   val definition = InternetDocument("CodingDojo", "http://codingdojo.org/cgi-bin/wiki.pl?KataTennis")
   val wikipedia = InternetDocument("Wikipedia", "http://en.wikipedia.org/wiki/Tennis_score")
@@ -68,11 +69,14 @@ class Tennis {
 }
 
 object Tennis extends Tennis with App {
+  import com.ing.scrooge.json4s.Json4s._
   dump
-  private val root: DecisionTreeNode[(Int, Int), String] = tennis.asInstanceOf[Engine1[(Int, Int), String]].dt.root
-  println(EnginePrinter(root))
-  println
-  val x = LeftRightTree(root)
-  println(x)
+  private val tree = tennis.asInstanceOf[Engine1[(Int, Int), String]].dt
+  val printer = DecisionTreePrinter.printer[JValue]
+  println(printer(tree))
+  //  println(DecisionNodePrinter(root))
+  //  println
+  //  val x = LeftRightTree(root)
+  //  println(x)
 }
 

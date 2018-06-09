@@ -58,9 +58,16 @@ lazy val publishSettings = commonSettings ++ Seq(
 lazy val utilitiesSettings = publishSettings ++ Seq(
   libraryDependencies += "org.scala-lang" % "scala-reflect" % versions.scala
 )
+lazy val json4sSettings = commonSettings ++ Seq(
+  libraryDependencies += "org.json4s" %% "json4s-native" % versions.json4s
+)
 
 val cddutilities = (project in file("module/cddutilities")).
   settings(utilitiesSettings)
+
+val cddjson4s = (project in file("module/cddjson4s")).
+  dependsOn(cddutilities % "test->test;compile->compile").
+  settings(json4sSettings)
 
 val cddscenario = (project in file("module/cddscenario")).
   dependsOn(cddutilities % "test->test;compile->compile").
@@ -74,6 +81,7 @@ val cddengine = (project in file("module/cddengine")).
 val cddexamples = (project in file("module/cddexamples")).
   dependsOn(cddutilities % "test->test;compile->compile").
   dependsOn(cddengine % "test->test;compile->compile").
+  dependsOn(cddjson4s % "test->test;compile->compile").
   settings(publishSettings)
 
 
@@ -81,9 +89,10 @@ val cddtest = (project in file("module/cddtest")).
   dependsOn(cddutilities % "test->test;compile->compile").
   dependsOn(cddengine % "test->test;compile->compile").
   dependsOn(cddscenario % "test->test;compile->compile").
+  dependsOn(cddjson4s % "test->test;compile->compile").
   settings(publishSettings)
 
 val cdd3 = (project in file(".")).
   settings(publishSettings).
   settings(publishArtifact := false).
-  aggregate(cddengine, cddutilities, cddscenario, cddtest)
+  aggregate(cddengine, cddutilities, cddscenario, cddtest, cddjson4s)
