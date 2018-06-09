@@ -11,6 +11,7 @@ object SemiGroup {
   implicit def forPartialFn[P,R]: SemiGroup[PartialFunction[P,R]] = { (t1, t2) => t1 orElse t2}
 }
 
+object SemiGroupLanguage extends SemiGroupLanguage
 trait SemiGroupLanguage {
   implicit class SemiGroupops[T](t: T)(implicit semiGroup: SemiGroup[T]) {
     def |+|(t1: T): T = semiGroup.add(t, t1)
@@ -22,7 +23,6 @@ trait SemiGroupLanguage {
 }
 
 
-object SemiGroupLanguage extends SemiGroupLanguage
 
 trait Zero[T] {
   def zero: T

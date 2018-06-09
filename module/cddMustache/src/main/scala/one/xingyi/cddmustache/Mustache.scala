@@ -11,17 +11,20 @@ object Mustache {
   val mf = new DefaultMustacheFactory()
   mf.setObjectHandler(new ScalaObjectHandler)
   def apply(name: String) = new Mustache(mf.compile(name))
-  def withTemplate(template: String)= new MustacheBuilder(template)
+  def withTemplate(template: String) = new MustacheBuilder(template)
 }
 
-class MustacheBuilder (template: String){
-  def apply( name: String, title: String) = new MustacheWithTemplate(Mustache(template), Mustache(name), title)
+class MustacheBuilder(template: String) {
+  def apply(name: String, title: String) = new MustacheWithTemplate(Mustache(template), Mustache(name), title)
 }
 
-case class BodyJsonAndTitle(body: String, json: String, title: String)
+case class BodyAndTitle(body: String, json: String, title: String)
 
 class MustacheWithTemplate(template: Mustache, main: Mustache, title: String) {
-  def apply(item: Any, json: String) = template(BodyJsonAndTitle(main(item), json, title))
+  def apply(item: Any, json: String) = {
+    val str = main(item)
+    template(BodyAndTitle(str, json, title))
+  }
 }
 
 class Mustache(mustache: JMustache) {

@@ -19,6 +19,7 @@ trait ScenarioLogic[P, R] {
   def fn: PartialFunction[P, R]
   def hasCondition: Boolean
   def accept(s: Scenario[P, R]) = fn.isDefinedAt(s.situation) && s.acceptResult(s.situation, fn.apply(s.situation))
+  def definedInSourceCodeAt: DefinedInSourceCodeAt
 }
 
 
@@ -35,4 +36,5 @@ case class CompositeScenarioLogic[P, R](logics: Seq[SingleScenarioLogic[P, R]]) 
   override val fn: PartialFunction[P, R] = logics.map(_.fn).orAll
   override def toString(): String = s"SCompLogic(${logics.mkString(",")})"
   override def ifString: String = logics.map(_.ifString).mkString(" or ")
+  override def definedInSourceCodeAt: DefinedInSourceCodeAt = CompositeDefinedInSourceCodeAt(logics.map(_.definedInSourceCodeAt))
 }

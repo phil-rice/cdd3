@@ -9,7 +9,7 @@ trait ToJson[T] extends (T => String)
 
 object ToJson {
   implicit def default[J, T](implicit jsonWriter: JsonWriter[J], toJsonLib: ToJsonLib[T]): ToJson[T] = t => jsonWriter(toJsonLib(t))
-}
+  }
 
 
 sealed trait JsonValue
@@ -27,7 +27,7 @@ object JsonObject {
 trait JsonWriter[J] extends (JsonValue => String) {
   def toJ(jsonValue: JsonValue): J
   def toStringForJ: J => String
-  def apply(jsonValue: JsonValue) = toStringForJ(toJ(jsonValue))
+  def apply(jsonValue: JsonValue): String = toStringForJ(toJ(jsonValue))
 }
 
 trait ToJsonLib[T] extends (T => JsonValue)

@@ -3,7 +3,7 @@ package one.xingyi.cddexamples
 import one.xingyi.cddengine._
 import one.xingyi.cddscenario.InternetDocument
 import one.xingyi.cddutilities.LeftRightTree
-import one.xingyi.cddutilities.json.JsonValue
+import one.xingyi.cddutilities.json.{JsonMaps, JsonValue}
 import org.json4s.JsonAST.JValue
 class Tennis {
   val definition = InternetDocument("CodingDojo", "http://codingdojo.org/cgi-bin/wiki.pl?KataTennis")
@@ -72,18 +72,20 @@ class Tennis {
 
 object Tennis extends Tennis with App {
   import one.xingyi.json4s.Json4s._
-//  dump
+  //  import one.xingyi.cddutilities.json.JsonAsMaps._
+  //  dump
   private val tree = tennis.asInstanceOf[Engine1[(Int, Int), String]].dt
   val printer = DecisionTreePrinter.toJson[JValue]
-//  println(printer(tree))
+  //  println(printer(tree))
   import one.xingyi.cddmustache._
   implicit val template = Mustache.withTemplate("main.template.mustache")
-  implicit def toHtml[P, R] = MustacheToHtml[JValue, LeftRightTree[DecisionNode[P, R], DecisionTreeNode[P, R]]]("decisiontree.mustache", "Tennis")
+  implicit def toHtml[P, R] = MustacheToHtmlAndJson[JValue, JsonMaps]("decisiontree.mustache", "Tennis")
   println
   println
   println
   println
-  println(DecisionTreePrinter.toHtml(tree))
+  println(DecisionTreePrinter.toHtml apply tree)
+  DecisionTreeTracer.trace("target/tennis{0}.html")(tennis.asInstanceOf[Engine1[(Int, Int), String]].scenarios)
   //  println(DecisionNodePrinter(root))
   //  println
   //  val x = LeftRightTree(root)
