@@ -1,4 +1,4 @@
-package one.xingyi.cddcore
+package one.xingyi.cddengine
 
 import one.xingyi.cddscenario.{Scenario, ScenarioLogic}
 import one.xingyi.cddutilities.Arrows._

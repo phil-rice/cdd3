@@ -1,4 +1,4 @@
-package one.xingyi.cddcore
+package one.xingyi.cddengine
 import one.xingyi.cddscenario.{CompositeScenarioLogic, Scenario}
 import one.xingyi.cddutilities.{CddSpec, DefinedInSourceCodeAtLanguage}
 

@@ -66,24 +66,24 @@ val cddscenario = (project in file("module/cddscenario")).
   dependsOn(cddutilities % "test->test;compile->compile").
   settings(publishSettings)
 
-val cddcore = (project in file("module/cddcore")).
+val cddengine = (project in file("module/cddengine")).
   dependsOn(cddutilities % "test->test;compile->compile").
   dependsOn(cddscenario % "test->test;compile->compile").
   settings(publishSettings)
 
 val cddexamples = (project in file("module/cddexamples")).
   dependsOn(cddutilities % "test->test;compile->compile").
-  dependsOn(cddcore % "test->test;compile->compile").
+  dependsOn(cddengine % "test->test;compile->compile").
   settings(publishSettings)
 
 
 val cddtest = (project in file("module/cddtest")).
   dependsOn(cddutilities % "test->test;compile->compile").
-  dependsOn(cddcore % "test->test;compile->compile").
+  dependsOn(cddengine % "test->test;compile->compile").
   dependsOn(cddscenario % "test->test;compile->compile").
   settings(publishSettings)
 
 val cdd3 = (project in file(".")).
   settings(publishSettings).
   settings(publishArtifact := false).
-  aggregate(cddcore, cddutilities, cddscenario, cddtest)
+  aggregate(cddengine, cddutilities, cddscenario, cddtest)

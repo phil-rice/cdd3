@@ -1,4 +1,4 @@
-package one.xingyi.cddcore
+package one.xingyi.cddengine
 import one.xingyi.cddscenario.{HasScenarios, Scenario, ScenarioLogic}
 
 import scala.language.higherKinds
