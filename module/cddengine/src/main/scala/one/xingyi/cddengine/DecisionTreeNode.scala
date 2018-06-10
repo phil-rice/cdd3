@@ -19,11 +19,11 @@ case class ConclusionNode[P, R](scenarios: List[Scenario[P, R]], logic: Scenario
   override def findLens(p: P): Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]] = Lens.identity
 }
 
-case class DecisionNode[P, R](logic: ScenarioLogic[P, R], left: DecisionTreeNode[P, R], right: DecisionTreeNode[P, R]) extends DecisionTreeNode[P, R] {
+case class DecisionNode[P, R](logic: ScenarioLogic[P, R], ifFalse: DecisionTreeNode[P, R], ifTrue: DecisionTreeNode[P, R]) extends DecisionTreeNode[P, R] {
   import DecisionTreeNode._
   override def findLens(p: P): Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]] = logic.fn.isDefinedAt(p) match {
-    case true => nodeToDNL andThen DNLtoRight[P, R] andThen right.findLens(p)
-    case false => nodeToDNL andThen DNLtoLeft[P, R] andThen left.findLens(p)
+    case true => nodeToDNL andThen DNLtoTrue[P, R] andThen ifTrue.findLens(p)
+    case false => nodeToDNL andThen DNLtoFalse[P, R] andThen ifFalse.findLens(p)
   }
 }
 
@@ -33,8 +33,8 @@ object DecisionTreeNode {
   def defaultFn[P, R]: P => R = { p: P => throw new DefaultNotSpecifiedException(p) }
   def nodeToDNL[P, R] = Lens.cast[DecisionTreeNode[P, R], DecisionNode[P, R]]
   def nodeToConcL[P, R] = Lens.cast[DecisionTreeNode[P, R], ConclusionNode[P, R]]
-  def DNLtoLeft[P, R] = Lens[DecisionNode[P, R], DecisionTreeNode[P, R]](_.left, (dn, c) => dn.copy(left = c))
-  def DNLtoRight[P, R] = Lens[DecisionNode[P, R], DecisionTreeNode[P, R]](_.right, (dn, c) => dn.copy(right = c))
+  def DNLtoFalse[P, R] = Lens[DecisionNode[P, R], DecisionTreeNode[P, R]](_.ifFalse, (dn, c) => dn.copy(ifFalse = c))
+  def DNLtoTrue[P, R] = Lens[DecisionNode[P, R], DecisionTreeNode[P, R]](_.ifTrue, (dn, c) => dn.copy(ifTrue = c))
 
   def makeLrt[P, R](node: DecisionTreeNode[P, R], parents: List[DecisionNode[P, R]] = List()): LeftRightTree[DecisionNode[P, R], DecisionTreeNode[P, R]] = node match {
     case d@DecisionNode(_, left, right) => LeftRightTree(node, parents, Some((makeLrt(left, d :: parents), makeLrt(right, d :: parents))))

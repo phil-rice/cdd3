@@ -86,6 +86,8 @@ object Tennis extends Tennis with App {
   println
   println(DecisionTreePrinter.toHtml apply tree)
   DecisionTreeTracer.trace("target/tennis{0}.html")(tennis.asInstanceOf[Engine1[(Int, Int), String]].scenarios)
+  println
+  dump
   //  println(DecisionNodePrinter(root))
   //  println
   //  val x = LeftRightTree(root)

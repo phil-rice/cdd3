@@ -66,7 +66,9 @@ object DecisionTreeTracer {
 
   def trace[J: JsonWriter, P, R](fileNamePattern: String)(s: List[Scenario[P, R]])(implicit toHtmlForMaps: ToHtmlAndJson[JsonMaps]) = {
     val list = DecisionTreeFolder.trace(s)
-    list.zipWithIndex.foreach { case (tree, i) => Files.printToFile(new File(MessageFormat.format(fileNamePattern, i.toString))) { pw => pw.write(DecisionTreePrinter.toHtml apply tree) } }
+    def file(i: Any) = new File(MessageFormat.format(fileNamePattern, i.toString))
+    list.zipWithIndex.foreach { case (traceData, i) => Files.printToFile(file(i)) { pw => pw.write(DecisionTreePrinter.toHtml apply traceData.tree) } }
+    val index = list.zipWithIndex.collect { case (TraceData(tree, Some(s), st), i) => s"<a href=${file(i).toURI.getPath}>${s.logic.definedInSourceCodeAt} ${st.getClass.getSimpleName} ${s.situation}</a>" }.mkString("<br />\n")
+    Files.printToFile(file("index"))(_.print(index))
   }
-
 }

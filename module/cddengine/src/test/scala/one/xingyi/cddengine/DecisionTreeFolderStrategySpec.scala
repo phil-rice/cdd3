@@ -137,7 +137,7 @@ class AddScenarioMergeConditionSpec extends AbstractDtFolderStrategySpec(AddScen
   }
 }
 
-class MakeDecisionNodeScenarioOnLeftSpec extends AbstractDtFolderStrategySpec(MakeDecisionNodeScenarioOnLeft) with DecisionTreeFixture {
+class MakeDecisionNodeScenarioAsFalseSpec extends AbstractDtFolderStrategySpec(MakeDecisionNodeScenarioAsFalse) with DecisionTreeFixture {
 
   it should "not accept an empty conclusion" in {
     isDefinedAt(cEmpty, sa) shouldBe false
@@ -176,7 +176,7 @@ class MakeDecisionNodeScenarioOnLeftSpec extends AbstractDtFolderStrategySpec(Ma
   }
 }
 
-class MakeDecisionNodeScenarioOnRightSpec extends AbstractDtFolderStrategySpec(MakeDecisionNodeScenarioOnRight) with DecisionTreeFixture {
+class MakeDecisionNodeScenarioAsTrueSpec extends AbstractDtFolderStrategySpec(MakeDecisionNodeScenarioAsTrue) with DecisionTreeFixture {
 
   it should "not accept an empty conclusion" in {
     isDefinedAt(cEmpty, sa) shouldBe false
