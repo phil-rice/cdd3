@@ -12,7 +12,7 @@ trait ScenarioFixture extends Matchers {
   val snormal2 = scenario("man with passport") produces "accept" scenario
   val sNoPassport = scenario("woman") produces "reject" when (!_.contains("passport")) scenario
   val sgun = scenario("man with gun and passport") produces "arrest" because { case x if x contains "gun" => "arrest" } scenario
-  val sgunNoPassport = scenario("man with gun ") produces "arrest" scenario
+  val sgunNoPassport = scenario("man with gun") produces "arrest" scenario
   val default = { s: String => fail("default is to fail") }
 
   val sa = scenario("a") produces "A" scenario

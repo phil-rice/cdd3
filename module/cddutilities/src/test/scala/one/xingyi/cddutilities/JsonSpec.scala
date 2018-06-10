@@ -14,6 +14,12 @@ abstract class JsonSpec[J: ClassTag](implicit jsonParser: JsonParser[J], jsonWri
   // has {main: {a:1, b:2}, secondary: {c:3,d:4}}
   def mainA1B2SecondaryC3D4 = jsonWriter.toJ(JsonObject("main" -> JsonObject("a" -> 1, "b" -> "2"), "secondary" -> JsonObject("c" -> 3, "d" -> "4")))
 
+  behavior of "JsonObject"
+
+  it should "have a |+| method" in {
+    JsonObject("a"->1) |+| ("b" -> 2) shouldBe JsonObject("a"->1, "b"->2)
+  }
+
   behavior of "JsonParser for " + implicitly[ClassTag[J]].runtimeClass.getName
 
   it should "extract ints" in {

@@ -1,6 +1,7 @@
 package one.xingyi.cddexamples
 
 import one.xingyi.cddengine._
+import one.xingyi.cddmustache.{Mustache, MustacheBuilder, MustacheWithTemplate}
 import one.xingyi.cddscenario.InternetDocument
 import one.xingyi.cddutilities.LeftRightTree
 import one.xingyi.cddutilities.json.{JsonMaps, JsonValue}
@@ -73,21 +74,33 @@ class Tennis {
 object Tennis extends Tennis with App {
   import one.xingyi.json4s.Json4s._
   //  import one.xingyi.cddutilities.json.JsonAsMaps._
-  //  dump
+  //  dumpprintln(
+  println("started")
   private val tree = tennis.asInstanceOf[Engine1[(Int, Int), String]].dt
-  val printer = DecisionTreePrinter.toJson[JValue]
+  println("made tree")
+  implicit val template: MustacheWithTemplate = Mustache.withTemplate("main.template.mustache") apply("decisiontree.mustache", "Tennis")
+  private val simple = DecisionTreeRendering.simple[(Int, Int), String]
+  val printer = simple andThen JsonMaps.apply andThen template.apply
+  println("made printer")
+
   //  println(printer(tree))
   import one.xingyi.cddmustache._
-  implicit val template = Mustache.withTemplate("main.template.mustache")
-  implicit def toHtml[P, R] = MustacheToHtmlAndJson[JValue, JsonMaps]("decisiontree.mustache", "Tennis")
+  //  implicit def toHtml[P, R] = MustacheToHtmlAndJson[JValue, JsonMaps]("decisiontree.mustache", "Tennis")
   println
   println
   println
-  println
-  println(DecisionTreePrinter.toHtml apply tree)
-  DecisionTreeTracer.trace("target/tennis{0}.html")(tennis.asInstanceOf[Engine1[(Int, Int), String]].scenarios)
-  println
-  dump
+  println("doing it")
+  private val jsonObject = simple.tree(tree)
+  println(jsonObject)
+  println("done simple")
+  JsonMaps.toMap(jsonObject)
+  println("made mapes")
+  println(printer.tree(tree))
+  //  DecisionTreeTracer.trace("target/tennis{0}.html")(tennis.asInstanceOf[Engine1[(Int, Int), String]].scenarios)
+  println("tracing")
+  DecisionTreeRendering.trace(printer)("target/tennis{0}.html")(tennis.asInstanceOf[Engine1[(Int, Int), String]].scenarios)
+  println("done it")
+  //  dump
   //  println(DecisionNodePrinter(root))
   //  println
   //  val x = LeftRightTree(root)

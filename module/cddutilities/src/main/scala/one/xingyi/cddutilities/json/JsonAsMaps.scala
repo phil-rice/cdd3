@@ -2,7 +2,6 @@ package one.xingyi.cddutilities.json
 
 
 object JsonMaps {
-  def apply(j: JsonValue): JsonMaps = JsonMaps(toMap(j))
 
   def toMap(j: JsonValue): Any = j match {
     case JsonString(s) => s
@@ -14,7 +13,9 @@ object JsonMaps {
   }
 
 }
-case class JsonMaps(map: Any)
+case class JsonMaps(jsonValue: JsonValue) {
+  lazy val map = JsonMaps.toMap(jsonValue)
+}
 
 object JsonAsMaps extends JsonAsMaps
 trait JsonAsMaps {

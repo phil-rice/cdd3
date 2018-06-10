@@ -19,6 +19,7 @@ case class JsonBoolean(b: Boolean) extends JsonValue
 case class JsonDouble(d: Double) extends JsonValue
 case class JsonObject(nameAndValues: (String, JsonValue)*) extends JsonValue {
   def|+|(other: (String, JsonValue)*) = JsonObject((nameAndValues ++ other): _*)
+  override def toString: String = s"JsonObject(${nameAndValues.mkString(",")})"
 }
 case class JsonList(list: List[JsonValue]) extends JsonValue
 
