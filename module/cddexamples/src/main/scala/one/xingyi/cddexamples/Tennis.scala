@@ -4,7 +4,7 @@ import one.xingyi.cddengine._
 import one.xingyi.cddmustache.{Mustache, MustacheBuilder, MustacheWithTemplate}
 import one.xingyi.cddscenario.InternetDocument
 import one.xingyi.cddutilities.LeftRightTree
-import one.xingyi.cddutilities.json.{JsonMaps, JsonValue}
+import one.xingyi.cddutilities.json.{JsonMaps, JsonObject, JsonValue, JsonWriter}
 import org.json4s.JsonAST.JValue
 class Tennis {
   val definition = InternetDocument("CodingDojo", "http://codingdojo.org/cgi-bin/wiki.pl?KataTennis")
@@ -71,7 +71,12 @@ class Tennis {
   }
 }
 
+object JsonDataForTree {
+  def make[J: JsonWriter, P, R](data: WithScenarioData[P, R])(jsonObject: JsonObject): JsonDataForTree[J, P, R] = JsonDataForTree[J, P, R](jsonObject, data)
+}
+case class JsonDataForTree[J: JsonWriter, P, R](jsonObject: JsonObject, data: WithScenarioData[P, R]) extends JsonMaps[J](jsonObject)
 object Tennis extends Tennis with App {
+  import one.xingyi.cddutilities.FunctionLanguage._
   import one.xingyi.json4s.Json4s._
   //  import one.xingyi.cddutilities.json.JsonAsMaps._
   //  dumpprintln(
@@ -81,7 +86,7 @@ object Tennis extends Tennis with App {
   implicit val template: MustacheWithTemplate = Mustache.withTemplate("main.template.mustache") apply("decisiontree.mustache", "Tennis")
   private val simple = DecisionTreeRendering.simple[(Int, Int), String]
   val printer = simple andThen JsonMaps.apply[JValue] andThen template.apply
-  def tracePrinter[P, R](data: WithScenarioData[P, R]) = DecisionTreeRendering.withScenario[P, R](data) andThen JsonMaps.apply[JValue] andThen template.apply
+  def tracePrinter[P, R](data: WithScenarioData[P, R]) = DecisionTreeRendering.withScenario[P, R](data) andThen JsonDataForTree.make[JValue, P, R](data)  andThen template.apply
   println("made printer")
 
   //  println(printer(tree))

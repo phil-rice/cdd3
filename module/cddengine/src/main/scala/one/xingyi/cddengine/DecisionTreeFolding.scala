@@ -70,7 +70,6 @@ sealed trait DTFolderStrategy {
 trait DFFolderSimpleStrategy extends DTFolderStrategy {
   def apply[P, R](c: ConclusionNode[P, R], s: Scenario[P, R]): DecisionTreeNode[P, R]
   def isDefinedAt[P, R](conclusionNode: ConclusionNode[P, R], scenario: Scenario[P, R]): Boolean
-
   def isDefinedAt[P, R](fd: FolderData[P, R]): Boolean = isDefinedAt(fd.conclusionNode, fd.scenario)
   def apply[P, R](fd: FolderData[P, R]): DecisionTreeNode[P, R] = apply(fd.conclusionNode, fd.scenario)
 }

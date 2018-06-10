@@ -75,7 +75,7 @@ sealed abstract class NodeEffect(val json: String)
 case object GoesThrough extends NodeEffect("goes_through")
 case object WouldGoThrough extends NodeEffect("would_go_through")
 case object Fails extends NodeEffect("fails")
-case object NotApplicable extends NodeEffect("")
+case object NotApplicable extends NodeEffect("not_on_path")
 
 object NodeEffect {
   import one.xingyi.cddutilities.AnyLanguage._

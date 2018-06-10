@@ -20,6 +20,10 @@ trait AnyLanguage {
 
 object FunctionLanguage extends FunctionLanguage
 trait FunctionLanguage {
+
+  implicit class FunctionOps[From, To](fn1: From => To) {
+    def andThenWithFrom[T](fn2: From => To => T) = { from: From => fn2(from)(fn1(from)) }
+  }
   implicit class FunctionToOptionOps[From, To](fn: From => Option[To]) {
     def orElse[T](fn2: From => Option[To]): From => Option[To] = { from: From => fn2(from) }
     def orDefault(to: => To): From => To = { from: From => fn(from).getOrElse(to) }

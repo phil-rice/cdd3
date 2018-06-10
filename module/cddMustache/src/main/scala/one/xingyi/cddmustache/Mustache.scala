@@ -18,12 +18,12 @@ class MustacheBuilder(template: String) {
   def apply(name: String, title: String) = new MustacheWithTemplate(Mustache(template), Mustache(name), title)
 }
 
-case class BodyJsonAndTitle(body: String, json: String, title: String)
+case class BodyJsonAndTitle(item: Any, body: String, json: String, title: String)
 
 class MustacheWithTemplate(template: Mustache, main: Mustache, title: String) {
   def apply[J](item: JsonMaps[J]) = {
     val str = main(item)
-    template(BodyJsonAndTitle(str, item.json, title))
+    template(BodyJsonAndTitle(item, str, item.json, title))
   }
 }
 

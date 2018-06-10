@@ -3,6 +3,8 @@ package one.xingyi.cddutilities.json
 
 object JsonMaps {
 
+  def apply[J: JsonWriter](jsonObject: JsonObject) = new JsonMaps[J](jsonObject)
+
   def toMap(j: JsonValue): Any = j match {
     case JsonString(s) => s
     case JsonInt(i) => i
@@ -13,7 +15,7 @@ object JsonMaps {
   }
 
 }
-case class JsonMaps[J](jsonValue: JsonValue)(implicit jWriter: JsonWriter[J]) {
+class JsonMaps[J](val jsonValue: JsonValue)(implicit jWriter: JsonWriter[J]) {
   lazy val map = JsonMaps.toMap(jsonValue)
   lazy val json = jWriter(jsonValue)
 }
