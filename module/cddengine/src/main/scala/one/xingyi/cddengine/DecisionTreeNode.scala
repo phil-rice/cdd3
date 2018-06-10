@@ -1,8 +1,8 @@
 package one.xingyi.cddengine
 
-import one.xingyi.cddscenario.{Scenario, ScenarioLogic}
+import one.xingyi.cddscenario.{HasEngineComponentData, Scenario, ScenarioLogic}
 import one.xingyi.cddutilities.Arrows._
-import one.xingyi.cddutilities.{LeftRightTree, Lens}
+import one.xingyi.cddutilities.{IsDefinedInSourceCodeAt, LeftRightTree, Lens}
 
 import scala.util.{Failure, Success, Try}
 
@@ -14,11 +14,17 @@ sealed trait DecisionTreeNode[P, R] {
 }
 
 
+object ConclusionNode {
+  implicit def isDefined[P, R]: IsDefinedInSourceCodeAt[ConclusionNode[P, R]] = { c => c.logic.definedInSourceCodeAt }
+}
 case class ConclusionNode[P, R](scenarios: List[Scenario[P, R]], logic: ScenarioLogic[P, R]) extends DecisionTreeNode[P, R] {
   def accept(s: Scenario[P, R]) = logic.accept(s)
   override def findLens(p: P): Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]] = Lens.identity
 }
 
+object DecisionNode {
+  implicit def isDefined[P, R]: IsDefinedInSourceCodeAt[DecisionNode[P, R]] = { d => d.logic.definedInSourceCodeAt }
+}
 case class DecisionNode[P, R](logic: ScenarioLogic[P, R], ifFalse: DecisionTreeNode[P, R], ifTrue: DecisionTreeNode[P, R]) extends DecisionTreeNode[P, R] {
   import DecisionTreeNode._
   override def findLens(p: P): Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]] = logic.fn.isDefinedAt(p) match {
@@ -52,7 +58,6 @@ case class DecisionTree[P, R](root: DecisionTreeNode[P, R], issues: List[Decisio
 object DecisionTree {
   def empty[P, R]: DecisionTree[P, R] = DecisionTree(ConclusionNode(List(), ScenarioLogic.empty), List())
 }
-
 
 
 trait DefaultFunction[P, R] extends PartialFunction[P, R]

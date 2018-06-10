@@ -10,6 +10,7 @@ trait HasScenarios[T[_, _]] {
 
 object Scenario {
   implicit def scenarioIsDefined[P, R]: IsDefinedInSourceCodeAt[Scenario[P, R]] = _.data.definedInSourceCodeAt
+  implicit def scenarioData[P,R]: HasEngineComponentData[Scenario[P,R]] = s => s.data
 }
 case class Scenario[P, R](situation: P, logic: SingleScenarioLogic[P, R], assertions: List[ScenarioAssertion[P, R]], data: EngineComponentData) {
   def acceptResult(p: P, r: R) = logic.result.fold(true)(_ == r) && assertions.forall(_.isTrue(p, r))

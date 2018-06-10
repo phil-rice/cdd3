@@ -11,6 +11,23 @@ trait AnyLanguage {
     }
   }
 
+  def using[T, T1](t: T)(fn: T => T1) = fn(t)
+
+  implicit class BooleanOps(b: Boolean) {
+    def asOption[T](t: => T) = if (b) Some(t) else None
+  }
+}
+
+object FunctionLanguage extends FunctionLanguage
+trait FunctionLanguage {
+  implicit class FunctionToOptionOps[From, To](fn: From => Option[To]) {
+    def orElse[T](fn2: From => Option[To]): From => Option[To] = { from: From => fn2(from) }
+    def orDefault(to: => To): From => To = { from: From => fn(from).getOrElse(to) }
+  }
+  implicit class FunctionFromMidToOptionOps[From, Mid, To](fn: From => Mid => Option[To]) {
+    def orElse[T](fn2: From => Mid => Option[To]): From => Mid => Option[To] = { from: From => mid: Mid => fn2(from)(mid) }
+    def orDefault(to: => To): From => Mid => To = { from: From => mid: Mid => fn(from)(mid).getOrElse(to) }
+  }
 }
 
 trait Arrows {
