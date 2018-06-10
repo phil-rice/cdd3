@@ -25,7 +25,7 @@ trait FunctionLanguage {
     def orDefault(to: => To): From => To = { from: From => fn(from).getOrElse(to) }
   }
   implicit class FunctionFromMidToOptionOps[From, Mid, To](fn: From => Mid => Option[To]) {
-    def orElse[T](fn2: From => Mid => Option[To]): From => Mid => Option[To] = { from: From => mid: Mid => fn2(from)(mid) }
+    def orElse(fn2: From => Mid => Option[To]): From => Mid => Option[To] = { from: From => mid: Mid => fn(from)(mid).orElse(fn2(from)(mid)) }
     def orDefault(to: => To): From => Mid => To = { from: From => mid: Mid => fn(from)(mid).getOrElse(to) }
   }
 }

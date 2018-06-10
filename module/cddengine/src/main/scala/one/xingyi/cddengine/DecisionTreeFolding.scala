@@ -6,7 +6,7 @@ import scala.util.{Failure, Success, Try}
 
 case class DecisionTreeFoldingData[P, R](st: DTFolderStrategy, lens: Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]], fd: FolderData[P, R])
 
-case class TraceData[P, R](tree: DecisionTree[P, R], s: Option[Scenario[P, R]], st: DTFolderStrategy)
+case class TraceData[P, R](tree: DecisionTree[P, R], s: Scenario[P, R], st: DTFolderStrategy)
 object DecisionTreeFolder {
   def findStrategy[P, R](tree: DecisionTree[P, R], s: Scenario[P, R])(implicit folderStrategyFinder: DtFolderStrategyFinder[P, R]): Try[DecisionTreeFoldingData[P, R]] = {
     val (lens, lensCn) = tree.root.findLensAndCnLens(s.situation)
@@ -35,13 +35,13 @@ object DecisionTreeFolder {
     list.foldLeft[DecisionTree[P, R]](DecisionTree.empty)(decisionTreeFolder)
 
   def trace[P, R](list: List[Scenario[P, R]])(implicit decisionTreeFolder: DecisionTreeFolder[P, R]): List[TraceData[P, R]] =
-    list.foldLeft[List[TraceData[P, R]]](List(TraceData(DecisionTree.empty, None, NullOp))) {
-      case (list@(TraceData(tree, _, _) :: tail), s) =>
+    list.foldLeft[List[TraceData[P, R]]](List()) {
+      case (list, s) =>
+        val tree = list.headOption.fold(DecisionTree.empty[P, R])(t => t.tree)
         val d = findStrategy(tree, s)
         val st = d.map(_.st).getOrElse(NullOp)
         val newTree = findNewTree(tree)(d)
-        TraceData(newTree, Some(s), st) :: list
-      case _ => ??? //??? suppresses warnings
+        TraceData(newTree, s, st) :: list
     }
 
 

@@ -13,8 +13,9 @@ object JsonMaps {
   }
 
 }
-case class JsonMaps(jsonValue: JsonValue) {
+case class JsonMaps[J](jsonValue: JsonValue)(implicit jWriter: JsonWriter[J]) {
   lazy val map = JsonMaps.toMap(jsonValue)
+  lazy val json = jWriter(jsonValue)
 }
 
 object JsonAsMaps extends JsonAsMaps

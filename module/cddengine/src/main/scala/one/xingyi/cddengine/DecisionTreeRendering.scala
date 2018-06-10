@@ -7,29 +7,22 @@ import one.xingyi.cddutilities.json.JsonLanguage._
 import one.xingyi.cddutilities.json._
 import one.xingyi.cddutilities.{Files, IsDefinedInSourceCodeAt, ShortPrint}
 
-sealed abstract class NodeEffect(val json: String)
-case object GoesThrough extends NodeEffect("goes_through")
-case object WouldGoThrough extends NodeEffect("would_go_through")
-case object Fails extends NodeEffect("fails")
 
-//object DecisionTreeTracer {
-//
-//  def trace[J: JsonWriter, P, R](fileNamePattern: String)(s: List[Scenario[P, R]])(implicit toHtmlForMaps: ToHtmlAndJson[JsonMaps]) = {
-//    val list = DecisionTreeFolder.trace(s)
-//    def file(i: Any) = new File(MessageFormat.format(fileNamePattern, i.toString))
-//    list.zipWithIndex.foreach { case (traceData, i) => Files.printToFile(file(i)) { pw => pw.write(DecisionTreePrinter.toHtml apply traceData.tree) } }
-//    val index = list.zipWithIndex.collect { case (TraceData(tree, Some(s), st), i) => s"<a href=${file(i).toURI.getPath}>${s.logic.definedInSourceCodeAt} ${st.getClass.getSimpleName} ${s.situation}</a>" }.mkString("<br />\n")
-//    Files.printToFile(file("index"))(_.print(index))
-//  }
-//}
+
 object DecisionTreeRendering {
   def simple[P: ShortPrint, R: ShortPrint]: DecisionTreeRendering[JsonObject, P, R] = new SimpleDecisionTreeRendering[P, R]
-  def withScenario[P: ShortPrint, R: ShortPrint](s: Scenario[P, R], nodes: List[DecisionTreeNode[P, R]]): DecisionTreeRendering[JsonObject, P, R] = new WithScenarioRendering[P, R](WithScenarioData(s, nodes))
-  def trace[P, R](rendering: DecisionTreeRendering[String, P, R])(fileNamePattern: String)(s: List[Scenario[P, R]]) = {
+  def withScenario[P: ShortPrint, R: ShortPrint](data: WithScenarioData[P, R]): DecisionTreeRendering[JsonObject, P, R] = new WithScenarioRendering[P, R](data)
+  def trace[P, R](rendering: WithScenarioData[P, R] => DecisionTreeRendering[String, P, R])(fileNamePattern: String)(s: List[Scenario[P, R]]) = {
     val list = DecisionTreeFolder.trace(s)
     def file(i: Any) = new File(MessageFormat.format(fileNamePattern, i.toString))
-    list.zipWithIndex.foreach { case (traceData, i) => Files.printToFile(file(i)) { pw => pw.write(rendering.tree apply traceData.tree) } }
-    val index = list.zipWithIndex.collect { case (TraceData(tree, Some(s), st), i) => s"<a href=${file(i).toURI.getPath}>${s.logic.definedInSourceCodeAt} ${st.getClass.getSimpleName} ${s.situation}</a>" }.mkString("<br />\n")
+    list.zipWithIndex.foreach { case (traceData, i) => Files.printToFile(file(i)) { pw =>
+      val s = DecisionTreeNodeFold.findWithParents[P, R](traceData.tree, traceData.s.situation)
+      println(s"found: ${s.mkString("\n   ", "\n   ", "")}")
+      val actualRendering = rendering(WithScenarioData(traceData.s, s))
+      pw.write(actualRendering.tree apply traceData.tree)
+    }
+    }
+    val index = list.zipWithIndex.collect { case (TraceData(tree, s, st), i) => s"<a href=${file(i).toURI.getPath}>${s.logic.definedInSourceCodeAt} ${st.getClass.getSimpleName} ${s.situation}</a>" }.mkString("<br />\n")
     Files.printToFile(file("index"))(_.print(index))
   }
 
@@ -78,14 +71,21 @@ class SimpleDecisionTreeRendering[P, R](implicit shortPrintP: ShortPrint[P], sho
 
 case class WithScenarioData[P, R](s: Scenario[P, R], nodes: List[DecisionTreeNode[P, R]])
 
+sealed abstract class NodeEffect(val json: String)
+case object GoesThrough extends NodeEffect("goes_through")
+case object WouldGoThrough extends NodeEffect("would_go_through")
+case object Fails extends NodeEffect("fails")
+case object NotApplicable extends NodeEffect("")
+
 object NodeEffect {
   import one.xingyi.cddutilities.AnyLanguage._
   import one.xingyi.cddutilities.FunctionLanguage._
   type NodeEffectNodeFn[P, R] = WithScenarioData[P, R] => DecisionTreeNode[P, R] => Option[NodeEffect]
 
-  def goesThroughNode[P, R]: NodeEffectNodeFn[P, R] = { withScenarioData => node => withScenarioData.nodes.find(_ == node).map(_ => GoesThrough) }
-  def wouldGoThroughNode[P, R]: NodeEffectNodeFn[P, R] = { withScenarioData => node => node.logic.accept(withScenarioData.s).asOption(WouldGoThrough) }
-  def apply[P, R](withScenarioData: WithScenarioData[P, R]): DecisionTreeNode[P, R] => NodeEffect = goesThroughNode[P, R] orElse wouldGoThroughNode orDefault Fails apply withScenarioData
+  def goesThroughNode[P, R]: NodeEffectNodeFn[P, R] = withScenarioData => node => withScenarioData.nodes.find(_ == node).map(_ => GoesThrough)
+  def wouldGoThroughNode[P, R]: NodeEffectNodeFn[P, R] = withScenarioData => node => node.logic.accept(withScenarioData.s).asOption(WouldGoThrough)
+  def failsDecisionNode[P, R]: NodeEffectNodeFn[P, R] = withScenarioData => {case node: DecisionNode[P, R] => Some(Fails); case _ => None}
+  def apply[P, R](withScenarioData: WithScenarioData[P, R]): DecisionTreeNode[P, R] => NodeEffect = goesThroughNode[P, R] orElse wouldGoThroughNode orElse failsDecisionNode orDefault NotApplicable apply withScenarioData
 }
 
 class WithScenarioRendering[P, R](withScenarioData: WithScenarioData[P, R]) extends SimpleDecisionTreeRendering[P, R] {
@@ -95,3 +95,4 @@ class WithScenarioRendering[P, R](withScenarioData: WithScenarioData[P, R]) exte
   override def decisionNode: DecisionNode[P, R] => JsonObject = super.decisionNode.addNodeEffect
   override def conclusionNode: ConclusionNode[P, R] => JsonObject = super.conclusionNode.addNodeEffect
 }
+

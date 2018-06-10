@@ -80,7 +80,8 @@ object Tennis extends Tennis with App {
   println("made tree")
   implicit val template: MustacheWithTemplate = Mustache.withTemplate("main.template.mustache") apply("decisiontree.mustache", "Tennis")
   private val simple = DecisionTreeRendering.simple[(Int, Int), String]
-  val printer = simple andThen JsonMaps.apply andThen template.apply
+  val printer = simple andThen JsonMaps.apply[JValue] andThen template.apply
+  def tracePrinter[P, R](data: WithScenarioData[P, R]) = DecisionTreeRendering.withScenario[P, R](data) andThen JsonMaps.apply[JValue] andThen template.apply
   println("made printer")
 
   //  println(printer(tree))
@@ -98,7 +99,7 @@ object Tennis extends Tennis with App {
   println(printer.tree(tree))
   //  DecisionTreeTracer.trace("target/tennis{0}.html")(tennis.asInstanceOf[Engine1[(Int, Int), String]].scenarios)
   println("tracing")
-  DecisionTreeRendering.trace(printer)("target/tennis{0}.html")(tennis.asInstanceOf[Engine1[(Int, Int), String]].scenarios)
+  DecisionTreeRendering.trace(tracePrinter[(Int, Int), String])("target/tennis{0}.html")(tennis.asInstanceOf[Engine1[(Int, Int), String]].scenarios)
   println("done it")
   //  dump
   //  println(DecisionNodePrinter(root))

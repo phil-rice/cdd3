@@ -5,13 +5,16 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <meta http-equiv="Expires" content="-1"/>
     <meta http-equiv="Pragma" content="no-cache"/>
-{{>css}}
+    {{>css}}
+    {{>prettyJsonScript}}
 </head>
 <body>
 <a href="/"><img src="https://imagizer.imageshack.com/v2/100x75q90/924/opprMV.png"/></a>
 {{{body}}}
 
 <hr/>
+{{body.map}}
+JSON
 <pre><div class="json">{{{json}}}</div></pre>
 </body>
 </html>
