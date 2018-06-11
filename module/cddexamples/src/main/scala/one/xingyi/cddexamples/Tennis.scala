@@ -71,45 +71,11 @@ class Tennis {
   }
 }
 
-object JsonDataForTree {
-  def make[J: JsonWriter, P, R](data: WithScenarioData[P, R])(jsonObject: JsonObject): JsonDataForTree[J, P, R] = JsonDataForTree[J, P, R](jsonObject, data)
-}
-case class JsonDataForTree[J: JsonWriter, P, R](jsonObject: JsonObject, data: WithScenarioData[P, R]) extends JsonMaps[J](jsonObject)
-object Tennis extends Tennis with App {
-  import one.xingyi.cddutilities.FunctionLanguage._
-  import one.xingyi.json4s.Json4s._
-  //  import one.xingyi.cddutilities.json.JsonAsMaps._
-  //  dumpprintln(
-  println("started")
-  private val tree = tennis.asInstanceOf[Engine1[(Int, Int), String]].dt
-  println("made tree")
-  implicit val template: MustacheWithTemplate = Mustache.withTemplate("main.template.mustache") apply("decisiontree.mustache", "Tennis")
-  private val simple = DecisionTreeRendering.simple[(Int, Int), String]
-  val printer = simple andThen JsonMaps.apply[JValue] andThen template.apply
-  def tracePrinter[P, R](data: WithScenarioData[P, R]) = DecisionTreeRendering.withScenario[P, R](data) andThen JsonDataForTree.make[JValue, P, R](data)  andThen template.apply
-  println("made printer")
 
-  //  println(printer(tree))
-  import one.xingyi.cddmustache._
-  //  implicit def toHtml[P, R] = MustacheToHtmlAndJson[JValue, JsonMaps]("decisiontree.mustache", "Tennis")
-  println
-  println
-  println
-  println("doing it")
-  private val jsonObject = simple.tree(tree)
-  println(jsonObject)
-  println("done simple")
-  JsonMaps.toMap(jsonObject)
-  println("made mapes")
-  println(printer.tree(tree))
-  //  DecisionTreeTracer.trace("target/tennis{0}.html")(tennis.asInstanceOf[Engine1[(Int, Int), String]].scenarios)
-  println("tracing")
-  DecisionTreeRendering.trace(tracePrinter[(Int, Int), String])("target/tennis{0}.html")(tennis.asInstanceOf[Engine1[(Int, Int), String]].scenarios)
-  println("done it")
-  //  dump
-  //  println(DecisionNodePrinter(root))
-  //  println
-  //  val x = LeftRightTree(root)
-  //  println(x)
+object Tennis extends Tennis with App {
+  import one.xingyi.json4s.Json4s._
+
+  implicit val template: MustacheWithTemplate[JValue] = Mustache.withTemplate("main.template.mustache") apply("decisiontree.mustache", "Tennis")
+  tennis.tools.trace[JValue]("target/cdd/trace/tennis{0}.html")
 }
 

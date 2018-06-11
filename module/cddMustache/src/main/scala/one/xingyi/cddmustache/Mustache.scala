@@ -4,7 +4,7 @@ import java.io.StringWriter
 
 import com.github.mustachejava.{DefaultMustacheFactory, Mustache => JMustache}
 import com.twitter.mustache.ScalaObjectHandler
-import one.xingyi.cddutilities.json.{JsonMaps, JsonWriter, ToJson}
+import one.xingyi.cddutilities.json.{JsonMaps, JsonWriter, TemplateEngine}
 
 
 object Mustache {
@@ -15,13 +15,13 @@ object Mustache {
 }
 
 class MustacheBuilder(template: String) {
-  def apply(name: String, title: String) = new MustacheWithTemplate(Mustache(template), Mustache(name), title)
+  def apply[J](name: String, title: String) = new MustacheWithTemplate[J](Mustache(template), Mustache(name), title)
 }
 
 case class BodyJsonAndTitle(item: Any, body: String, json: String, title: String)
 
-class MustacheWithTemplate(template: Mustache, main: Mustache, title: String) {
-  def apply[J](item: JsonMaps[J]) = {
+class MustacheWithTemplate[J](template: Mustache, main: Mustache, title: String) extends TemplateEngine[J] {
+  def apply(item: JsonMaps[J]) = {
     val str = main(item)
     template(BodyJsonAndTitle(item, str, item.json, title))
   }

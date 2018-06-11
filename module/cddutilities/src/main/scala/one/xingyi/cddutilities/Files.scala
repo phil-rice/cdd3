@@ -24,6 +24,7 @@ object Files {
   }
 
   def printToFile(f: java.io.File)(op: java.io.PrintWriter => Unit) {
+    f.getParentFile.mkdirs()
     val p = new java.io.PrintWriter(f)
     try {
       op(p)

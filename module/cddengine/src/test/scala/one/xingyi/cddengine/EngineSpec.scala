@@ -15,11 +15,11 @@ class EngineSpec extends CddSpec with DecisionTreeFixture {
       scenario("aw") produces "A"
       scenario("b") produces "B"
       scenario("bw") produces "B"
-    }).asInstanceOf[Engine1[String, String]]
+    })
 
     val DecisionTree(DecisionNode(dlLogic: SingleScenarioLogic[String, String],
     ConclusionNode(List(sb, sbw), falseLogic: SingleScenarioLogic[String, String]),
-    ConclusionNode(List(sa, saw), trueLogic: SingleScenarioLogic[String, String])), List()) = e.dt
+    ConclusionNode(List(sa, saw), trueLogic: SingleScenarioLogic[String, String])), List()) = e.tools.decisionTree
     sb.situation shouldBe "b"
     sbw.situation shouldBe "bw"
     sa.situation shouldBe "a"
@@ -41,14 +41,14 @@ class EngineSpec extends CddSpec with DecisionTreeFixture {
       scenario("b") produces "B" when containsB
       scenario("bw") produces "B"
 
-    }).asInstanceOf[Engine1[String, String]]
+    })
 
     val DecisionTree(
     DecisionNode(dlLogic: SingleScenarioLogic[String, String],
     DecisionNode(ifcLogic: SingleScenarioLogic[String, String],
     ConclusionNode(List(sc, scw), cLogic: SingleScenarioLogic[String, String]),
     ConclusionNode(List(sb, sbw), bLogic: SingleScenarioLogic[String, String])),
-    ConclusionNode(List(sa, saw), aLogic: SingleScenarioLogic[String, String])), List()) = e.dt
+    ConclusionNode(List(sa, saw), aLogic: SingleScenarioLogic[String, String])), List()) = e.tools.decisionTree
 
     sb.situation shouldBe "b"
     sbw.situation shouldBe "bw"
