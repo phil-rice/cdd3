@@ -75,7 +75,7 @@ class Tennis {
 object Tennis extends Tennis with App {
   import one.xingyi.json4s.Json4s._
 
-  implicit val template: MustacheWithTemplate[JValue] = Mustache.withTemplate("main.template.mustache") apply("decisiontree.mustache", "Tennis")
+  implicit val template: MustacheWithTemplate[JValue] = Mustache.withTemplate("main.template.mustache") apply("decisionTree.mustache", "Tennis")
   tennis.tools.trace[JValue]("target/cdd/trace/tennis{0}.html")
 }
 
