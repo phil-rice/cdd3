@@ -22,11 +22,12 @@ class PrintRenderToFile {
 }
 
 class TraceRenderer {
-  def apply[P, R](rendering: WithScenarioData[P, R] => DecisionTreeRendering[String, P, R])(fileNamePattern: String)(s: List[Scenario[P, R]])(implicit printRenderToFile: PrintRenderToFile) = {
-    val list = DecisionTreeFolder.trace(s)
+  def apply[P, R](rendering: WithScenarioData[P, R] => DecisionTreeRendering[String, P, R])(fileNamePattern: String)(engine: Engine[P, R])(implicit printRenderToFile: PrintRenderToFile) = {
+    val scenarios: List[Scenario[P, R]] = engine.tools.scenarios
+    val list = DecisionTreeFolder.trace[P, R](scenarios)
     list.zipWithIndex.foreach { case (traceData, i) => printRenderToFile(fileNamePattern, i) { pw =>
-      val actualRendering = rendering(WithScenarioData(traceData.s, DecisionTree.parents(traceData.tree)(traceData.s)))
-      pw.write(actualRendering.tree apply traceData.tree)
+      val actualRendering = rendering(WithScenarioData(traceData.s, DecisionTree.parentNodes(traceData.tree)(traceData.s)))
+      pw.write(actualRendering.engine apply Engine1[P, R](traceData.tree, scenarios.take(i), engine.tools.useCases))
     }
     }
     val indexPage = list.zipWithIndex.collect { case (TraceData(tree, s, st), i) => s"<a href=${printRenderToFile.path(fileNamePattern, i)}>${s.logic.definedInSourceCodeAt} ${st.getClass.getSimpleName} ${s.situation}</a>" }.mkString("<br />\n")
@@ -39,7 +40,10 @@ class PrintPagesRenderer {
   def apply[P, R](rendering: DecisionTreeRendering[String, P, R], scenarioRendering: WithScenarioData[P, R] => DecisionTreeRendering[String, P, R])(fileNamePattern: String, engine: Engine[P, R])(implicit printRenderToFile: PrintRenderToFile) = {
     printRenderToFile(fileNamePattern, "index")(_.print(rendering.engine(engine)))
     engine.tools.useCases.zipWithIndex.foreach { case (uc, i) => printRenderToFile(fileNamePattern, s"usecase$i")(pw => pw.print(rendering.useCase(uc))) }
-    engine.tools.scenarios.zipWithIndex.foreach { case (s, i) => printRenderToFile(fileNamePattern, s"scenario$i")(pw => pw.print(rendering.scenario(s))) }
+    engine.tools.scenarios.zipWithIndex.foreach { case (s, i) =>
+      val actualRendering = scenarioRendering(WithScenarioData(s, DecisionTree.parentNodes(engine.tools.decisionTree)(s)))
+      printRenderToFile(fileNamePattern, s"scenario$i")(pw => pw.print(actualRendering.engine(engine)))
+    }
   }
 
 }
@@ -76,9 +80,9 @@ class SimpleDecisionTreeRendering[P, R](implicit shortPrintP: ShortPrint[P], sho
     def defined[T](t: T)(implicit isDefinedInSourceCodeAt: IsDefinedInSourceCodeAt[T]) = j |+| ("defined" -> isDefinedInSourceCodeAt(t).toString)
     def addOptList(nameAndList: (String, List[JsonObject])) = if (nameAndList._2.size > 0) j |+| (nameAndList._1 -> JsonList(nameAndList._2), ("has" + nameAndList._1) -> true) else j
   }
-  override def engine = e => JsonObject("usecases" -> JsonList(e.tools.useCases.map(useCase)), "tree" -> tree(e.tools.decisionTree))
-  override def tree = tree => JsonObject("tree" -> node(tree.root)) addOptList ("issues" -> tree.issues.map(issue))
-  override def useCase = u => JsonObject("useCase" -> JsonObject().data(u))
+  override def engine = e => JsonObject("useCases" -> JsonList(e.tools.useCases.map(useCase)), "tree" -> tree(e.tools.decisionTree))
+  override def tree = tree => JsonObject("root" -> node(tree.root)) addOptList ("issues" -> tree.issues.map(issue))
+  override def useCase = u => JsonObject("useCase" -> JsonObject("scenarioTitle" -> true, "scenarios" -> JsonList(u.allScenarios.map(scenario))).data(u))
   override def decisionNode: DecisionNode[P, R] => JsonObject = d => JsonObject("decisionNode" -> JsonObject("condition" -> toJsonString(d.logic.ifString), "ifTrue" -> node(d.ifTrue), "ifFalse" -> node(d.ifFalse))).defined(d)
   override def conclusionNode: ConclusionNode[P, R] => JsonObject = c => JsonObject("conclusionNode" -> JsonObject("scenarios" -> JsonList(c.scenarios.map(scenario)))).defined(c)
   override def scenario: Scenario[P, R] => JsonObject = s => JsonObject("situation" -> shortPrintP(s.situation)).data(s)
@@ -93,9 +97,9 @@ case object WouldGoThrough extends NodeEffect("would_go_through")
 case object Fails extends NodeEffect("fails")
 case object NotApplicable extends NodeEffect("not_on_path")
 
+import one.xingyi.cddutilities.AnyLanguage._
+import one.xingyi.cddutilities.FunctionLanguage._
 object NodeEffect {
-  import one.xingyi.cddutilities.AnyLanguage._
-  import one.xingyi.cddutilities.FunctionLanguage._
   type NodeEffectNodeFn[P, R] = WithScenarioData[P, R] => DecisionTreeNode[P, R] => Option[NodeEffect]
 
   def goesThroughNode[P, R]: NodeEffectNodeFn[P, R] = withScenarioData => node => withScenarioData.nodes.find(_ == node).map(_ => GoesThrough)
@@ -110,8 +114,11 @@ object NodeEffect {
 class WithScenarioRendering[P, R](withScenarioData: WithScenarioData[P, R]) extends SimpleDecisionTreeRendering[P, R] {
   implicit class WithSituationJsonObjectOps[From <: DecisionTreeNode[P, R]](j: From => JsonObject) {
     def addNodeEffect: From => JsonObject = { from => j(from) |+| ("node" -> NodeEffect(withScenarioData)(from).json) }
+
   }
   override def decisionNode: DecisionNode[P, R] => JsonObject = super.decisionNode.addNodeEffect
   override def conclusionNode: ConclusionNode[P, R] => JsonObject = super.conclusionNode.addNodeEffect
+  override def useCase: UseCase[P, R] => JsonObject = uc => if (uc.allScenarios.contains(withScenarioData.s)) super.useCase(uc) else JsonObject("useCase" -> JsonObject().data(uc))
+  override def scenario: Scenario[P, R] => JsonObject = s => if (withScenarioData.s == s) super.scenario(s) |+| "selected" -> "selected" else super.scenario(s)
 }
 
