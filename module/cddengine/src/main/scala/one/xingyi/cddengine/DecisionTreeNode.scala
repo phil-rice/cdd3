@@ -64,6 +64,7 @@ case class DecisionTree[P, R](root: DecisionTreeNode[P, R], issues: List[Decisio
 
 object DecisionTree {
   def empty[P, R]: DecisionTree[P, R] = DecisionTree(ConclusionNode(List(), ScenarioLogic.empty), List())
+  def parents[P, R](tree: DecisionTree[P, R])(s: Scenario[P, R]) = DecisionTreeNodeFold.findWithParents[P, R](tree, s.situation)
 }
 
 

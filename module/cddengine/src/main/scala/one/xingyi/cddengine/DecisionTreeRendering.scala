@@ -1,5 +1,5 @@
 package one.xingyi.cddengine
-import java.io.File
+import java.io.{File, PrintWriter}
 import java.text.MessageFormat
 
 import one.xingyi.cddscenario.{HasEngineComponentData, Scenario}
@@ -11,30 +11,44 @@ import one.xingyi.cddutilities.{Files, IsDefinedInSourceCodeAt, ShortPrint}
 object DecisionTreeRendering {
   def simple[P: ShortPrint, R: ShortPrint]: DecisionTreeRendering[JsonObject, P, R] = new SimpleDecisionTreeRendering[P, R]
   def withScenario[P: ShortPrint, R: ShortPrint](data: WithScenarioData[P, R]): DecisionTreeRendering[JsonObject, P, R] = new WithScenarioRendering[P, R](data)
-  def trace[P, R] = new TraceRenderer[P, R]
+  def trace = new TraceRenderer
+  def print = new PrintPagesRenderer
 }
 
-class TraceRenderer[P, R] {
-  def apply(rendering: WithScenarioData[P, R] => DecisionTreeRendering[String, P, R])(fileNamePattern: String)(s: List[Scenario[P, R]]) = {
+class PrintRenderToFile {
+  def file(fileNamePattern: String, i: Any) = new File(MessageFormat.format(fileNamePattern, i.toString))
+  def path(fileNamePattern: String, i: Any) = file(fileNamePattern, i).toURI.getPath
+  def apply(fileNamePattern: String, i: Any)(pwFn: PrintWriter => Unit) = Files.printToFile(file(fileNamePattern, i))(pwFn)
+}
+
+class TraceRenderer {
+  def apply[P, R](rendering: WithScenarioData[P, R] => DecisionTreeRendering[String, P, R])(fileNamePattern: String)(s: List[Scenario[P, R]])(implicit printRenderToFile: PrintRenderToFile) = {
     val list = DecisionTreeFolder.trace(s)
-    def file(i: Any) = new File(MessageFormat.format(fileNamePattern, i.toString))
-    list.zipWithIndex.foreach { case (traceData, i) => Files.printToFile(file(i)) { pw =>
-      val s = DecisionTreeNodeFold.findWithParents[P, R](traceData.tree, traceData.s.situation)
-      println(s"found: ${s.mkString("\n   ", "\n   ", "")}")
-      val actualRendering = rendering(WithScenarioData(traceData.s, s))
+    list.zipWithIndex.foreach { case (traceData, i) => printRenderToFile(fileNamePattern, i) { pw =>
+      val actualRendering = rendering(WithScenarioData(traceData.s, DecisionTree.parents(traceData.tree)(traceData.s)))
       pw.write(actualRendering.tree apply traceData.tree)
     }
     }
-    val index = list.zipWithIndex.collect { case (TraceData(tree, s, st), i) => s"<a href=${file(i).toURI.getPath}>${s.logic.definedInSourceCodeAt} ${st.getClass.getSimpleName} ${s.situation}</a>" }.mkString("<br />\n")
-    Files.printToFile(file("index"))(_.print(index))
+    val indexPage = list.zipWithIndex.collect { case (TraceData(tree, s, st), i) => s"<a href=${printRenderToFile.path(fileNamePattern, i)}>${s.logic.definedInSourceCodeAt} ${st.getClass.getSimpleName} ${s.situation}</a>" }.mkString("<br />\n")
+    printRenderToFile(fileNamePattern, "index")(_.print(indexPage))
   }
+}
+
+class PrintPagesRenderer {
+
+  def apply[P, R](rendering: DecisionTreeRendering[String, P, R], scenarioRendering: WithScenarioData[P, R] => DecisionTreeRendering[String, P, R])(fileNamePattern: String, engine: Engine[P, R])(implicit printRenderToFile: PrintRenderToFile) = {
+    printRenderToFile(fileNamePattern, "index")(_.print(rendering.engine(engine)))
+    engine.tools.useCases.zipWithIndex.foreach { case (uc, i) => printRenderToFile(fileNamePattern, s"usecase$i")(pw => pw.print(rendering.useCase(uc))) }
+    engine.tools.scenarios.zipWithIndex.foreach { case (s, i) => printRenderToFile(fileNamePattern, s"scenario$i")(pw => pw.print(rendering.scenario(s))) }
+  }
+
 }
 
 //We could have broken this down to individual type classes, but the type signatures would be horrible as we need to be able to pass in custom renderers and there is one per entity
 trait DecisionTreeRendering[J, P, R] {
   def engine: Engine[P, R] => J
   def tree: DecisionTree[P, R] => J
-  def useCase: UseCase1[P, R] => J
+  def useCase: UseCase[P, R] => J
   def scenario: Scenario[P, R] => J
   def node: DecisionTreeNode[P, R] => J = {case c: ConclusionNode[P, R] => conclusionNode(c); case d: DecisionNode[P, R] => decisionNode(d)}
   def decisionNode: DecisionNode[P, R] => J
@@ -46,7 +60,7 @@ trait DecisionTreeRendering[J, P, R] {
 class TransformingTreeRending[J, J1, P, R](rendering: DecisionTreeRendering[J, P, R], transform: J => J1) extends DecisionTreeRendering[J1, P, R] {
   override def engine: Engine[P, R] => J1 = rendering.engine andThen transform
   override def tree: DecisionTree[P, R] => J1 = rendering.tree andThen { p => println("in println" + p); p } andThen transform
-  override def useCase: UseCase1[P, R] => J1 = rendering.useCase andThen transform
+  override def useCase(): UseCase[P, R] => J1 = rendering.useCase andThen transform
   override def scenario: Scenario[P, R] => J1 = rendering.scenario andThen transform
   override def decisionNode: DecisionNode[P, R] => J1 = rendering.decisionNode andThen transform
   override def conclusionNode: ConclusionNode[P, R] => J1 = rendering.conclusionNode andThen transform

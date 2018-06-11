@@ -75,7 +75,9 @@ class Tennis {
 object Tennis extends Tennis with App {
   import one.xingyi.json4s.Json4s._
 
+  implicit val printR = new PrintRenderToFile
   implicit val template: MustacheWithTemplate[JValue] = Mustache.withTemplate("main.template.mustache") apply("decisionTree.mustache", "Tennis")
   tennis.tools.trace[JValue]("target/cdd/trace/tennis{0}.html")
+  tennis.tools.printPages[JValue]("target/cdd/print/tennis{0}.html")
 }
 

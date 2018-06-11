@@ -5,23 +5,33 @@ import one.xingyi.cddutilities.{DefinedInSourceCodeAt, IdMaker}
 import scala.language.higherKinds
 
 trait HasUseCases[T[_, _]] {
-  def useCases[P, R](t: T[P, R]): List[UseCase1[P, R]]
+  def useCases[P, R](t: T[P, R]): List[UseCase[P, R]]
+}
+
+object UseCase {
+  implicit def ucHasComponentData[P, R]: HasEngineComponentData[UseCase[P, R]] = { u => u.data }
+
+}
+trait UseCase[P, R] {
+  def data: EngineComponentData
+  def allScenarios: List[Scenario[P, R]]
+  def allUseCases: List[UseCase[P, R]]
 }
 object UseCase1 {
   implicit def hasScenarios: HasScenarios[UseCase1] = new HasScenarios[UseCase1] {
     override def allScenarios[P, R](t: UseCase1[P, R]): List[Scenario[P, R]] = t.allScenarios
   }
-  implicit def ucHasComponentData[P, R]: HasEngineComponentData[UseCase1[P, R]] = { u => u.data }
   implicit def usHasUseCases: HasUseCases[UseCase1] = new HasUseCases[UseCase1] {
     override def useCases[P, R](t: UseCase1[P, R]): List[UseCase1[P, R]] = List(t)
   }
 }
-class UseCase1[P, R](val data: EngineComponentData) extends IdMaker {
+class UseCase1[P, R](val data: EngineComponentData) extends UseCase[P, R] with IdMaker {
   def this(title: String) = this(EngineComponentData(definedInSourceCodeAt = DefinedInSourceCodeAt.definedInSourceCodeAt(), title = Some(title)))
   protected implicit val aggregator = new RememberingScenarioAggregator[P, R]
   protected def scenario(p: P) = RawSituation[P](p, ScenarioBuilderData[P, Nothing](getNextId, p, title = None, isDefinedAt = DefinedInSourceCodeAt.definedInSourceCodeAt(2)))
   def allScenarios = aggregator.scenarios
   def or(useCase1: UseCase1[P, R]) = new CompositeUseCase[P, R](List(this, useCase1), EngineComponentData(DefinedInSourceCodeAt.definedInSourceCodeAt(), None))
+  override def allUseCases: List[UseCase[P, R]] = List()
 }
 
 class UseCase2[P1, P2, R](data: EngineComponentData) extends UseCase1[(P1, P2), R](data) {
@@ -37,11 +47,11 @@ object CompositeUseCase {
     override def allScenarios[P, R](t: CompositeUseCase[P, R]): List[Scenario[P, R]] = t.allScenarios
   }
   implicit def usHasUseCases: HasUseCases[CompositeUseCase] = new HasUseCases[CompositeUseCase] {
-    override def useCases[P, R](t: CompositeUseCase[P, R]): List[UseCase1[P, R]] = t.useCases
+    override def useCases[P, R](t: CompositeUseCase[P, R]): List[UseCase1[P, R]] = t.allUseCases
   }
 }
-class CompositeUseCase[P, R](val useCases: List[UseCase1[P, R]], engineComponentData: EngineComponentData) {
-  val allScenarios: List[Scenario[P, R]] = useCases.flatMap(_.allScenarios)
-  def or(useCase1: UseCase1[P, R]) = new CompositeUseCase[P, R](useCases :+ useCase1, EngineComponentData(DefinedInSourceCodeAt.definedInSourceCodeAt(), None))
+class CompositeUseCase[P, R](val allUseCases: List[UseCase1[P, R]], val data: EngineComponentData) extends UseCase[P, R] {
+  val allScenarios: List[Scenario[P, R]] = allUseCases.flatMap(_.allScenarios)
+  def or(useCase1: UseCase1[P, R]) = new CompositeUseCase[P, R](allUseCases :+ useCase1, EngineComponentData(DefinedInSourceCodeAt.definedInSourceCodeAt(), None))
 }
 

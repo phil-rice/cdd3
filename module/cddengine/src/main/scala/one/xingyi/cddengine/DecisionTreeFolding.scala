@@ -7,6 +7,8 @@ import scala.util.{Failure, Success, Try}
 case class DecisionTreeFoldingData[P, R](st: DTFolderStrategy, lens: Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]], fd: FolderData[P, R])
 
 case class TraceData[P, R](tree: DecisionTree[P, R], s: Scenario[P, R], st: DTFolderStrategy)
+
+
 object DecisionTreeFolder {
   def findStrategy[P, R](tree: DecisionTree[P, R], s: Scenario[P, R])(implicit folderStrategyFinder: DtFolderStrategyFinder[P, R]): Try[DecisionTreeFoldingData[P, R]] = {
     val (lens, lensCn) = tree.root.findLensAndCnLens(s.situation)
