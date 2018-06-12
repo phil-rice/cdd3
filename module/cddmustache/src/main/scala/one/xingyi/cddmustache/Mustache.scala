@@ -8,6 +8,8 @@ import one.xingyi.cddutilities.json.{JsonMaps, JsonWriter, TemplateEngine}
 
 
 object Mustache {
+  implicit def template[J]: MustacheWithTemplate[J] = Mustache.withTemplate("main.template.mustache") apply("engine.mustache", "Tennis")
+
   val mf = new DefaultMustacheFactory()
   mf.setObjectHandler(new ScalaObjectHandler)
   def apply(name: String) = new Mustache(mf.compile(name))
@@ -19,6 +21,7 @@ class MustacheBuilder(template: String) {
 }
 
 case class BodyJsonAndTitle(item: Any, body: String, json: String, title: String)
+
 
 class MustacheWithTemplate[J](template: Mustache, main: Mustache, title: String) extends TemplateEngine[J] {
   def apply(item: JsonMaps[J]) = {

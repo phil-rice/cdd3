@@ -24,13 +24,19 @@ object Files {
   }
 
   def printToFile(f: java.io.File)(op: java.io.PrintWriter => Unit) {
-    f.getParentFile.mkdirs()
+    try {
+      println(f)
+      f.getParentFile.mkdirs()
+    } catch {
+      case e: Exception => throw new RuntimeException(s"File: $f", e)
+    }
     val p = new java.io.PrintWriter(f)
     try {
       op(p)
     } finally {
       p.close()
     }
+
   }
 }
 

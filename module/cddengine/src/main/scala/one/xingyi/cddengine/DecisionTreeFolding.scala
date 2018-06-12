@@ -36,14 +36,15 @@ object DecisionTreeFolder {
   def apply[P, R](list: List[Scenario[P, R]])(implicit decisionTreeFolder: DecisionTreeFolder[P, R], default: DefaultFunction[P, R]): DecisionTree[P, R] =
     list.foldLeft[DecisionTree[P, R]](DecisionTree.empty)(decisionTreeFolder)
 
-  def trace[P, R](list: List[Scenario[P, R]])(implicit decisionTreeFolder: DecisionTreeFolder[P, R]): List[TraceData[P, R]] =
-    list.foldLeft[List[TraceData[P, R]]](List()) {
-      case (list, s) =>
-        val tree = list.headOption.fold(DecisionTree.empty[P, R])(t => t.tree)
+  def trace[P, R](list: List[Scenario[P, R]])(implicit validation: Validation[P, R], decisionTreeFolder: DecisionTreeFolder[P, R]): List[TraceData[P, R]] =
+    list.zipWithIndex.foldLeft[List[TraceData[P, R]]](List()) {
+      case (acc, (s, i)) =>
+        val tree = acc.headOption.fold(DecisionTree.empty[P, R])(t => t.tree)
         val d = findStrategy(tree, s)
         val st = d.map(_.st).getOrElse(NullOp)
         val newTree = findNewTree(tree)(d)
-        TraceData(newTree, s, st) :: list
+        val v = validation(Engine1(newTree, list.take(i), List()))
+        TraceData(newTree, s, st) :: acc
     }
 
 
@@ -127,8 +128,8 @@ class SimpleDtFolderStrategyFinder[P, R] extends DtFolderStrategyFinder[P, R] {
     AddScenarioReplaceLogic,
     AddScenarioMergeCondition,
     AddScenarioToConclusion,
-    MakeDecisionNodeScenarioAsTrue,
     MakeDecisionNodeScenarioAsFalse,
+    MakeDecisionNodeScenarioAsTrue,
     ScenariosClash)
 
   def apply(fd: FolderData[P, R]): DTFolderStrategy = folders.find(_.isDefinedAt(fd)).getOrElse(throw new RuntimeException(s"Cannot work out how to deal with $fd"))
