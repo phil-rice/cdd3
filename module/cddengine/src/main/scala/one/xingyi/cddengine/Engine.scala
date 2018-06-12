@@ -9,7 +9,6 @@ import scala.collection.concurrent.TrieMap
 import scala.language.higherKinds
 
 
-
 object JsonDataForTree {
   def make[J: JsonWriter, P, R](data: WithScenarioData[P, R])(jsonObject: JsonObject): JsonDataForTree[J, P, R] = JsonDataForTree[J, P, R](jsonObject, Some(data))
 }
@@ -24,7 +23,7 @@ trait EngineTools[P, R] {
   def useCases: List[UseCase[P, R]]
   def scenarios: List[Scenario[P, R]]
   def decisionTree: DecisionTree[P, R]
-  def trace[J: JsonWriter](prefix: String)(implicit config: RenderingConfig, template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit
+  def trace[J: JsonWriter](prefix: String)(implicit config: RenderingConfig, validation: Validation[P, R], template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit
   def printPages[J: JsonWriter](prefix: String)(implicit config: RenderingConfig, template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit
 }
 
@@ -32,9 +31,9 @@ class SimpleEngineTools[P, R](engine: Engine1[P, R]) extends EngineTools[P, R] {
   override def decisionTree: DecisionTree[P, R] = engine.decisionTree
   override def scenarios: List[Scenario[P, R]] = engine.scenarios
   override def useCases: List[UseCase[P, R]] = engine.useCases
-  protected def printPrinter[J: JsonWriter](implicit engineUrlGenerators: EngineUrlGenerators[P,R], config: RenderingConfig, template: TemplateEngine[J]) = DecisionTreeRendering.simple[P, R] andThen (x => JsonDataForTree[J, P, R](x, None)) andThen template.apply
-  protected def tracePrinter[J: JsonWriter](data: WithScenarioData[P, R])(implicit engineUrlGenerators: EngineUrlGenerators[P,R], template: TemplateEngine[J]) = DecisionTreeRendering.withScenario[P, R](data) andThen JsonDataForTree.make[J, P, R](data) andThen template.apply
-  override def trace[J: JsonWriter](prefix: String)(implicit renderingConfig: RenderingConfig, template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit =
+  protected def printPrinter[J: JsonWriter](implicit engineUrlGenerators: EngineUrlGenerators[P, R], config: RenderingConfig, template: TemplateEngine[J]) = DecisionTreeRendering.simple[P, R] andThen (x => JsonDataForTree[J, P, R](x, None)) andThen template.apply
+  protected def tracePrinter[J: JsonWriter](data: WithScenarioData[P, R])(implicit engineUrlGenerators: EngineUrlGenerators[P, R], template: TemplateEngine[J]) = DecisionTreeRendering.withScenario[P, R](data) andThen JsonDataForTree.make[J, P, R](data) andThen template.apply
+  override def trace[J: JsonWriter](prefix: String)(implicit renderingConfig: RenderingConfig, validation: Validation[P, R], template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit =
     DecisionTreeRendering.trace.apply(tracePrinter[J], prefix)(engine)
 
   override def printPages[J: JsonWriter](prefix: String)(implicit renderingConfig: RenderingConfig, template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit =

@@ -1,6 +1,6 @@
 package one.xingyi.cddscenario
 
-import one.xingyi.cddutilities.CddSpec
+import one.xingyi.cddutilities.{CddSpec, DefinedInSourceCodeAt}
 
 class ScenarioLogicSpec extends CddSpec {
 
@@ -14,5 +14,6 @@ class ScenarioLogicSpec extends CddSpec {
     empty.result shouldBe None
     empty.definedInSourceCodeAt.toString shouldBe "(ScenarioLogicSpec.scala:11)"
   }
+
 
 }

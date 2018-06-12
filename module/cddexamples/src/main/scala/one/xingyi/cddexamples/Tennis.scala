@@ -58,6 +58,8 @@ class Tennis {
   }
   val tennis = Engine(ucLeftWins or ucRightWins or ucRunningScore or ucXXAll or ucDeuce or ucAdvantage)
   def dump = {
+    println(tennis(0, 0))
+    println(tennis(0, 1))
     println(tennis(1, 1))
     println(tennis(2, 1))
     println(tennis(3, 1))
@@ -76,6 +78,7 @@ object Tennis extends Tennis with App {
   import one.xingyi.json4s.Json4s._
   import Mustache._
 
+  implicit  def v[P,R] = new SimpleValidation[P,R]
   tennis.tools.trace("tennis")
   tennis.tools.printPages("tennis")
   dump

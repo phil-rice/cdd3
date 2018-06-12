@@ -154,6 +154,8 @@ class MakeDecisionNodeScenarioAsFalseSpec extends AbstractDtFolderStrategySpec(M
     isDefinedAt(c(sawa), sawa) shouldBe false
   }
 
+  //need to write a test for
+
   it should "not accept when conclusion has no condition" in {
     isDefinedAt(c(sa), sb) shouldBe false
     isDefinedAt(c(sa), sbbb) shouldBe false

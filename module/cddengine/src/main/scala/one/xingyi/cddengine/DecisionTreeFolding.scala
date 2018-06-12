@@ -100,7 +100,7 @@ case object AddScenarioMergeCondition extends DFFolderSimpleStrategy {
   def apply[P, R](c: ConclusionNode[P, R], s: Scenario[P, R]): DecisionTreeNode[P, R] = c.copy(scenarios = c.scenarios :+ s, logic = c.logic or s.logic)
 }
 case object MakeDecisionNodeScenarioAsFalse extends DFFolderSimpleStrategy {
-  def isDefinedAt[P, R](c: ConclusionNode[P, R], s: Scenario[P, R]): Boolean = c.logic.hasCondition && !c.accept(s)
+  def isDefinedAt[P, R](c: ConclusionNode[P, R], s: Scenario[P, R]): Boolean = c.logic.hasCondition && !c.logic.fn.isDefinedAt(s.situation) && !c.accept(s)
   def apply[P, R](c: ConclusionNode[P, R], s: Scenario[P, R]): DecisionTreeNode[P, R] = DecisionNode(c.logic, ConclusionNode(List(s), s.logic), c)
 }
 case object MakeDecisionNodeScenarioAsTrue extends DTFolderStrategy {

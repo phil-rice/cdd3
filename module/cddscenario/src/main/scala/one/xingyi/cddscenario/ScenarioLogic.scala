@@ -24,7 +24,13 @@ trait ScenarioLogic[P, R] {
 
 
 case class SingleScenarioLogic[P, R](result: Option[R], definedAt: Option[P => Boolean], code: Option[P => R], definedInSourceCodeAt: SingleDefinedInSourceCodeAt, ifString: String)(implicit shortPrintP: ShortPrint[P], shortPrintR: ShortPrint[R]) extends ScenarioLogic[P, R] {
-  val fn = (code or result.asFun) asPFn definedAt getOrElse NoDefaultDefinedException.throwWith[P]
+  val fn: PartialFunction[P, R] = (definedAt, code, result) match {
+    case (Some(d), Some(c), _) => {case a if d(a) => c(a)}
+    case (None, Some(c), _) => {case a => c(a)}
+    case (Some(d), None, Some(r)) => {case a if d(a)=> r}
+    case (None, None, Some(r)) => {case a => r}
+    case _ => {case a if false => throw new NoDefaultDefinedException(a)}
+  }
   override def hasCondition: Boolean = definedAt.isDefined
   override def toString(): String = s"SLogic(${result.map(shortPrintR)},$definedInSourceCodeAt)"
 }

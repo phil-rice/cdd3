@@ -9,7 +9,11 @@ trait Validation[P, R] extends (Engine[P, R] => ValidationReport[P, R])
 
 class SimpleValidation[P, R] extends Validation[P, R] {
   override def apply(e: Engine[P, R]): ValidationReport[P, R] =
-    ValidationReport(e, e.tools.scenarios.map(s => (s, e(s.situation))).collect { case (s, r) if s.logic.result.isDefined && Some(r) != s.logic.result => ScenarioComesToWrongConclusion(s, r) })
+    ValidationReport(e, e.tools.scenarios.map(s => (s, e.apply(s.situation))).collect { case (s, r) if s.logic.result.isDefined && Some(r) != s.logic.result =>
+      val result = ScenarioComesToWrongConclusion(s, r)
+      println(s" s is [${s.situation}] actual is $r Expected is ${s.logic.result} result: $result")
+      result
+    })
 
 
 }
