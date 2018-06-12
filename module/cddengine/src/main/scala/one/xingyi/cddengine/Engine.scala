@@ -3,7 +3,7 @@ import java.text.MessageFormat
 
 import one.xingyi.cddscenario.{HasScenarios, Scenario, ScenarioLogic}
 import one.xingyi.cddutilities.json.{JsonMaps, JsonObject, JsonWriter, TemplateEngine}
-import one.xingyi.cddutilities.{IdMaker, SaveTest, Strings}
+import one.xingyi.cddutilities.{IdMaker, TestFramework}
 
 import scala.collection.concurrent.TrieMap
 import scala.language.higherKinds
@@ -25,7 +25,7 @@ trait EngineTools[P, R] {
   def decisionTree: DecisionTree[P, R]
   def trace[J: JsonWriter](prefix: String)(implicit config: RenderingConfig, validation: Validation[P, R], template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit
   def printPages[J: JsonWriter](prefix: String)(implicit config: RenderingConfig, template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit
-  def test[J](implicit saveTest: SaveTest[J]): EngineTester[J, P, R]
+  def test: EngineTester[P, R]
 }
 
 class SimpleEngineTools[P, R](engine: Engine1[P, R]) extends EngineTools[P, R] {
@@ -39,7 +39,7 @@ class SimpleEngineTools[P, R](engine: Engine1[P, R]) extends EngineTools[P, R] {
 
   override def printPages[J: JsonWriter](prefix: String)(implicit renderingConfig: RenderingConfig, template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit =
     DecisionTreeRendering.print.apply[P, R](printPrinter[J], tracePrinter[J])(prefix, engine)
-  def test[J](implicit saveTest: SaveTest[J]): EngineTester[J, P, R] = new SimpleTester[J, P, R]
+  def test: EngineTester[ P, R] = new SimpleTester[P, R]
 }
 case class Engine1[P, R](decisionTree: DecisionTree[P, R], scenarios: List[Scenario[P, R]], useCases: List[UseCase[P, R]]) extends Engine[P, R] {
   def logicFor(p: P): ScenarioLogic[P, R] = decisionTree.root.findLens(p).get(decisionTree.root).logic
