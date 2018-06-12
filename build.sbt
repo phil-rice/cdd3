@@ -62,6 +62,9 @@ lazy val json4sSettings = publishSettings ++ Seq(
 lazy val mustacheSettings = publishSettings ++ Seq(
   libraryDependencies += "com.github.spullara.mustache.java" % "scala-extensions-2.11" % versions.mustache
 )
+lazy val junitSettings = publishSettings ++ Seq(
+  libraryDependencies += "junit" % "junit" % versions.junit
+)
 
 
 val cddutilities = (project in file("module/cddutilities")).
@@ -86,10 +89,16 @@ val cddengine = (project in file("module/cddengine")).
   dependsOn(cddscenario % "test->test;compile->compile").
   settings(publishSettings)
 
+val cddjunit = (project in file("module/cddjunit")).
+  dependsOn(cddutilities % "test->test;compile->compile").
+  dependsOn(cddengine % "test->test;compile->compile").
+  settings(junitSettings)
+
 val cddexamples = (project in file("module/cddexamples")).
   dependsOn(cddutilities % "test->test;compile->compile").
   dependsOn(cddengine % "test->test;compile->compile").
   dependsOn(cddjson4s % "test->test;compile->compile").
+  dependsOn(cddjunit % "test->test;compile->compile").
   dependsOn(cddmustache % "test->test;compile->compile").
   settings(publishSettings)
 
@@ -103,4 +112,4 @@ val cddtest = (project in file("module/cddtest")).
 val cdd3 = (project in file(".")).
   settings(publishSettings).
   settings(publishArtifact := false).
-  aggregate(cddengine, cddutilities, cddscenario, cddtest, cddjson4s)
+  aggregate(cddengine, cddutilities, cddscenario, cddtest, cddjson4s, cddjunit, cddmustache, cddexamples)
