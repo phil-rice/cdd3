@@ -1,13 +1,23 @@
 package one.xingyi.cddutilities
 
-
+import scala.util.Try
 object AnyLanguage extends AnyLanguage
 trait AnyLanguage {
-  implicit class AnyOps[T](t: T) {
+  implicit class AnyOps[T](t: => T) {
     def ifError(fn: Exception => T): T = try {
       t
     } catch {
       case e: Exception => fn(e)
+    }
+    def sideeffect(fn: T => Unit): T = {
+      val result = t
+      fn(t)
+      result
+    }
+    def sideeffectTry(fn: Try[T] => Unit): Try[T] = {
+      val triedT = Try(t)
+      fn(triedT)
+      triedT
     }
   }
 
@@ -23,6 +33,12 @@ trait FunctionLanguage {
 
   implicit class FunctionOps[From, To](fn1: From => To) {
     def andThenWithFrom[T](fn2: From => To => T) = { from: From => fn2(from)(fn1(from)) }
+    def wrap(startFn: From => Unit)(endFn: Try[To] => Unit): From => Try[To] = { from: From =>
+      startFn(from)
+      val result = Try(fn1(from))
+      endFn(result)
+      result
+    }
   }
   implicit class FunctionToOptionOps[From, To](fn: From => Option[To]) {
     def orElse[T](fn2: From => Option[To]): From => Option[To] = { from: From => fn2(from) }
@@ -50,3 +66,5 @@ trait Arrows {
 }
 object Arrows extends Arrows
 import Arrows._
+
+import scala.util.Try

@@ -7,7 +7,7 @@ import java.lang.reflect.{Field, InvocationTargetException, Method}
 import scala.collection.immutable.ListMap
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
-
+import scala.language.implicitConversions
 object Reflection {
 
   implicit def toFieldMapPimper[V](fieldMap: ListMap[Field, Try[V]]) = new FieldMapPimper(fieldMap)

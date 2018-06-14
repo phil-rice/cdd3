@@ -1,13 +1,18 @@
 package one.xingyi.cddutilities
 
-sealed trait TestResult
-case object TestSucceeded extends TestResult
-case object TestFailed extends TestResult
+import AnyLanguage._
 
-trait TestFramework[J]{
-  def createTest(t: NestedTest): J
+import scala.collection.concurrent.TrieMap
+trait TestFramework[J] extends (CddTest => J)
+
+sealed trait CddTest {
+  def fold[D](map: TrieMap[D, CddTest], fn: CddTest => D)
 }
-
-sealed trait EngineTest
-case class ScenarioTest(name: String, block: ()=> Unit) extends EngineTest
-case class NestedTest(name: String, tests: Seq[EngineTest]) extends EngineTest
+case class ScenarioTest(name: String, block: () => Unit) extends CddTest {
+  def fold[D](map: TrieMap[D, CddTest], fn: CddTest => D) = fn(this) sideeffect (d => map.getOrElse(d, this))
+}
+case class NestedTest(name: String, tests: Seq[CddTest]) extends CddTest {
+  def fold[D](map: TrieMap[D, CddTest], fn: CddTest => D): Unit = {
+    fn(this) sideeffect (d => map.getOrElse(d, this)) sideeffect (_ => tests.foreach(_.fold(map, fn)))
+  }
+}
