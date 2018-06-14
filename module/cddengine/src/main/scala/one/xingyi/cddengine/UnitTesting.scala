@@ -1,7 +1,7 @@
 package one.xingyi.cddengine
 import one.xingyi.cddscenario.Scenario
 import one.xingyi.cddutilities._
-
+import AnyLanguage._
 import scala.util.Try
 
 trait CddRunner extends IdMaker {
@@ -11,12 +11,15 @@ trait CddRunner extends IdMaker {
 }
 
 
-case class ScenarioFailedException(s: Scenario[_, _], result: Any) extends RuntimeException
+case class ScenarioFailedException[R](s: Scenario[_, _], result: R)(implicit short: ShortPrint[R]) extends
+  RuntimeException(s"Actual result: ${short(result)}")
 
 class SimpleTestMaker[P, R](name: String, engine: Engine[P, R])(implicit shortPrintp: ShortPrint[P], shortPrintR: ShortPrint[R]) {
+  def checkResult(s: Scenario[P, R]) = engine(s.situation) sideeffect (result => if (!s.acceptResult(s.situation, result))throw new ScenarioFailedException(s, result))
+
   def validate(engine: Engine[P, R])(s: Scenario[P, R]): CddTest = {
     val name = shortPrintp(s.situation) + "=>" + s.logic.result.fold("undefined")(shortPrintR)
-    ScenarioTest(name, () => if (!s.acceptResult(s.situation, engine(s.situation))) throw new ScenarioFailedException(s, engine(s.situation)))
+    ScenarioTest(name, () => checkResult(s))
   }
 
   def apply =
