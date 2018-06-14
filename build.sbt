@@ -92,11 +92,6 @@ val cddengine = (project in file("module/cddengine")).
                                                      dependsOn(cddscenario % "test->test;compile->compile").
                                                      settings(publishSettings)
 
-val cddunit = (project in file("module/cddunit")).
-                                                 dependsOn(cddutilities % "test->test;compile->compile").
-                                                 dependsOn(cddengine % "test->test;compile->compile").
-                                                 settings(junitSettings)
-
 val cddscalatest = (project in file("module/cddscalatest")).
                                                            dependsOn(cddutilities % "test->test;compile->compile").
                                                            dependsOn(cddengine % "test->test;compile->compile").
@@ -106,7 +101,6 @@ val cddexamples = (project in file("module/cddexamples")).
                                                          dependsOn(cddutilities % "test->test;compile->compile").
                                                          dependsOn(cddengine % "test->test;compile->compile").
                                                          dependsOn(cddjson4s % "test->test;compile->compile").
-                                                         dependsOn(cddunit % "test->test;compile->compile").
                                                          dependsOn(cddscalatest % "test->test;compile->compile").
                                                          dependsOn(cddmustache % "test->test;compile->compile").
                                                          settings(publishSettings)
@@ -121,4 +115,4 @@ val cddtest = (project in file("module/cddtest")).
 val cdd3 = (project in file(".")).
                                  settings(publishSettings).
                                  settings(publishArtifact := false).
-                                 aggregate(cddengine, cddutilities, cddscenario, cddtest, cddjson4s, cddunit, cddmustache, cddscalatest, cddexamples)
+                                 aggregate(cddengine, cddutilities, cddscenario, cddtest, cddjson4s, cddmustache, cddscalatest, cddexamples)

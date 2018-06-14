@@ -1,8 +1,10 @@
 package one.xingyi.cddutilities
 
-import AnyLanguage._
+import one.xingyi.cddutilities.AnyLanguage._
 
 import scala.collection.concurrent.TrieMap
+
+
 trait TestFramework[J] extends (CddTest => J)
 
 sealed trait CddTest {

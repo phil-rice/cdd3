@@ -19,7 +19,6 @@ class Tennis {
     scenario(4, 1) produces "left won"
     scenario(4, 2) produces "left won"
     scenario(5, 3) produces "left won"
-    scenario(5, 3) produces "left won"
   }
   //  reference("2.1", definition).
   val ucRightWins = new TennisUseCase("Receiver winning") {

@@ -2,7 +2,6 @@
 
 Usecases can be engines themselves and we can have  composition operators on them
 
-
 We want different languages for P => R, P1, P2 => R. The only real difference is in the when/because code
 so scenario(1, 2) produces "something" when (l,r) => l<r would be nice
 
@@ -11,6 +10,19 @@ so scenario(1, 2) produces "something" when (l,r) => l<r would be nice
 It's a pain, but the alternatives look worse
 It's a pain because we want nice error messages, which requires not having huge structures.
 To not have a huge structure, I think we need side effects. I couldn't make a fluent design look nice
+
+# Usecases are the main unit of composition
+So they need issues. 
+This makes the scala test reporting work nicely as well. 
+
+# Need nicer reporting when working with tests that don't work
+
+It would be cool to have a report with a link you can click on (probably in a temp directory)
+That report should have enough info to explain the current tree, the current node, and it can't be added.
+
+# Need to validate scenarios on creation
+
+For example what if the code or the why or the because don't work, or an assertion fails
 
 # Lens in Decision Tree
 There is a lot of type casting going on... can we avoid this?
@@ -39,6 +51,8 @@ If Engines are kleslis that just works.
 Can have Kleisli monad easy enough
 
 This allows things that have to throw exceptions / fail to be done easily
+
+Need nice names for engines
 
 # Remember
 Most things are just small chunks of behavior and we mix them up to do what we want. Most usecases will 
@@ -76,7 +90,7 @@ We want to learn from things, and be able to add code and go really quickly
 This is only worth it if it goes a lot faster.
 
 # Reports
-Need to be moved from Cdd2
+Need to be made much prettier. Css person.
 
 # Website
 Ditto

@@ -12,7 +12,7 @@ class TennisSpec extends CddSpec {
     val t = new Tennis()
     import t._
     dump
-     tennis(1, 1) shouldBe "fifteen, fifteen"
+     tennis(1, 1) shouldBe "fifteen all"
     tennis(2, 1) shouldBe "thirty, fifteen"
     tennis(3, 1) shouldBe "forty, fifteen"
     tennis(3, 2) shouldBe "forty, thirty"
