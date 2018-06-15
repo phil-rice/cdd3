@@ -14,12 +14,13 @@ class Tennis {
   val lookup = Map(0 -> "love", 1 -> "fifteen", 2 -> "thirty", 3 -> "forty")
 
   type TennisUseCase = UseCase2[Int, Int, String]
+
   val ucLeftWins = new TennisUseCase("left winning") {
     scenario(4, 0) produces "left won" when { (l, r) => (l - r) >= 2 && l >= 4 }
     scenario(4, 1) produces "left won"
-    scenario(4, 2) produces "left won"
-    scenario(5, 3) produces "left wonxx"
-  }
+    scenario(4, 2) produces "left won" reference wikipedia
+    scenario(5, 3) produces "left wonxx" comment "this is deliberately wrong to demonstrate"
+  } comment "Left wins should really be 'Server wins'"
   //  reference("2.1", definition).
   val ucRightWins = new TennisUseCase("Receiver winning") {
     scenario(0, 4) produces "right won" when { (l: Int, r: Int) => (r - l) >= 2 && r >= 4 }
@@ -56,6 +57,8 @@ class Tennis {
     scenario(5, 6) produces "advantage right"
   }
   val tennis = Engine(ucLeftWins or ucRightWins or ucRunningScore or ucXXAll or ucDeuce or ucAdvantage)
+
+
   def dump = {
     println(tennis(0, 0))
     println(tennis(0, 1))
@@ -77,7 +80,7 @@ object Tennis extends Tennis with App {
   import one.xingyi.json4s.Json4s._
   import Mustache._
 
-  implicit  def v[P,R] = new SimpleValidation[P,R]
+  implicit def v[P, R] = new SimpleValidation[P, R]
   tennis.tools.trace("tennis")
   tennis.tools.printPages("tennis")
   dump

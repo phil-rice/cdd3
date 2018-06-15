@@ -11,5 +11,6 @@ abstract class ScenarioBuilderComponent[Self <: ScenarioBuilderComponent[Self, P
   protected def rawCopyWith(fn: ScenarioBuilderData[P, R] => ScenarioBuilderData[P, R]): Self
   def comment(string: String): Self = copyWith(_.copy(comment = Some(string)))
   def title(string: String): Self = copyWith(_.copy(title = Some(string)))
-  def reference(reference: Reference): Self = copyWith(d => d.copy(references = d.references :+ reference))
+
+  def reference(document: Document): Self = copyWith(d => d.copy(references = d.references :+ Reference(document)))
 }
