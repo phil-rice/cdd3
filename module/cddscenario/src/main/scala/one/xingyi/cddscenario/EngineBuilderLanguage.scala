@@ -70,7 +70,7 @@ object EngineBuilderLanguage {
     import builder._
     new ScBuilder[P, R, HasResult, No, No, Yes](id, situation, data, optResult, optWhen, optCode, Some(because), ifStringFromMacro, thenStringFromMacro)
   }
-  def withWhenPrim[P, R, HasResult, HasCode](builder: ScBuilder[P, R, HasResult, No, HasCode, No], when: P => Boolean, ifStringFromMacro: String) = {
+  def withWhenPrim[P, R, HasResult, HasCode](builder: ScBuilder[P, R, HasResult, No, HasCode, No], when: P => Boolean, ifStringFromMacro: String): ScBuilder[P, R, HasResult, Yes, HasCode, No] = {
     import builder._
     new ScBuilder[P, R, HasResult, Yes, HasCode, No](id, situation, data, optResult, Some(when), optCode, optBecause, ifStringFromMacro, thenString)
   }
