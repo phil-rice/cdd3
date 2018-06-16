@@ -71,48 +71,50 @@ lazy val scalatestSeetings = publishSettings ++ Seq(
 )
 
 val cddutilities = (project in file("module/cddutilities")).
-                                                           settings(utilitiesSettings)
+  settings(utilitiesSettings)
 
+val cddscripts = (project in file("module/cddscripts")).
+  settings(utilitiesSettings)
 
 val cddmustache = (project in file("module/cddmustache")).
-                                                         dependsOn(cddutilities % "test->test;compile->compile").
-                                                         aggregate(cddutilities).
-                                                         settings(mustacheSettings)
+  dependsOn(cddutilities % "test->test;compile->compile").
+  aggregate(cddutilities).
+  settings(mustacheSettings)
 
 val cddjson4s = (project in file("module/cddjson4s")).
-                                                     dependsOn(cddutilities % "test->test;compile->compile").
-                                                     settings(json4sSettings)
+  dependsOn(cddutilities % "test->test;compile->compile").
+  settings(json4sSettings)
 
 val cddscenario = (project in file("module/cddscenario")).
-                                                         dependsOn(cddutilities % "test->test;compile->compile").
-                                                         settings(publishSettings)
+  dependsOn(cddutilities % "test->test;compile->compile").
+  settings(publishSettings)
 
 val cddengine = (project in file("module/cddengine")).
-                                                     dependsOn(cddutilities % "test->test;compile->compile").
-                                                     dependsOn(cddscenario % "test->test;compile->compile").
-                                                     settings(publishSettings)
+  dependsOn(cddutilities % "test->test;compile->compile").
+  dependsOn(cddscenario % "test->test;compile->compile").
+  settings(publishSettings)
 
 val cddscalatest = (project in file("module/cddscalatest")).
-                                                           dependsOn(cddutilities % "test->test;compile->compile").
-                                                           dependsOn(cddengine % "test->test;compile->compile").
-                                                           settings(scalatestSeetings)
+  dependsOn(cddutilities % "test->test;compile->compile").
+  dependsOn(cddengine % "test->test;compile->compile").
+  settings(scalatestSeetings)
 
 val cddexamples = (project in file("module/cddexamples")).
-                                                         dependsOn(cddutilities % "test->test;compile->compile").
-                                                         dependsOn(cddengine % "test->test;compile->compile").
-                                                         dependsOn(cddjson4s % "test->test;compile->compile").
-                                                         dependsOn(cddscalatest % "test->test;compile->compile").
-                                                         dependsOn(cddmustache % "test->test;compile->compile").
-                                                         settings(publishSettings)
+  dependsOn(cddutilities % "test->test;compile->compile").
+  dependsOn(cddengine % "test->test;compile->compile").
+  dependsOn(cddjson4s % "test->test;compile->compile").
+  dependsOn(cddscalatest % "test->test;compile->compile").
+  dependsOn(cddmustache % "test->test;compile->compile").
+  settings(publishSettings)
 
 val cddtest = (project in file("module/cddtest")).
-                                                 dependsOn(cddutilities % "test->test;compile->compile").
-                                                 dependsOn(cddengine % "test->test;compile->compile").
-                                                 dependsOn(cddscenario % "test->test;compile->compile").
-                                                 dependsOn(cddjson4s % "test->test;compile->compile").
-                                                 settings(publishSettings)
+  dependsOn(cddutilities % "test->test;compile->compile").
+  dependsOn(cddengine % "test->test;compile->compile").
+  dependsOn(cddscenario % "test->test;compile->compile").
+  dependsOn(cddjson4s % "test->test;compile->compile").
+  settings(publishSettings)
 
 val cdd3 = (project in file(".")).
-                                 settings(publishSettings).
-                                 settings(publishArtifact := false).
-                                 aggregate(cddengine, cddutilities, cddscenario, cddtest, cddjson4s, cddmustache, cddscalatest, cddexamples)
+  settings(publishSettings).
+  settings(publishArtifact := false).
+  aggregate(cddengine, cddutilities, cddscenario, cddtest, cddjson4s, cddmustache, cddscalatest, cddexamples)
