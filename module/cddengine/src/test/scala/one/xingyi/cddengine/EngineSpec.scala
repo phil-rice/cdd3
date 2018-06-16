@@ -1,5 +1,5 @@
 package one.xingyi.cddengine
-import one.xingyi.cddscenario.SingleScenarioLogic
+import one.xingyi.cddscenario.{SingleScenarioLogic, WhenResultScenarioLogic}
 import one.xingyi.cddutilities.CddSpec
 class EngineSpec extends CddSpec with DecisionTreeFixture {
 
@@ -24,7 +24,7 @@ class EngineSpec extends CddSpec with DecisionTreeFixture {
     sbw.situation shouldBe "bw"
     sa.situation shouldBe "a"
     saw.situation shouldBe "aw"
-    dlLogic.definedAt shouldBe Some(containsA)
+    dlLogic.asInstanceOf[WhenResultScenarioLogic[String, String]].when shouldBe containsA
     trueLogic shouldBe dlLogic
 
     e("a") shouldBe "A"
@@ -56,7 +56,7 @@ class EngineSpec extends CddSpec with DecisionTreeFixture {
     saw.situation shouldBe "aw"
     sc.situation shouldBe "c"
     scw.situation shouldBe "cw"
-    dlLogic.definedAt shouldBe Some(containsA)
+    dlLogic.asInstanceOf[WhenResultScenarioLogic[String,String]].when shouldBe containsA
 
 
     e("a") shouldBe "A"

@@ -10,7 +10,6 @@ class ScalaTestFramework extends TestFramework[Unit] {
 
 trait CddFlatSpec extends FunSpecLike with CddRunner {
 
-  println(tryTests)
   tryTests.get.tests.foreach(build)
 
   def build(test: CddTest): Unit = test match {

@@ -2,7 +2,7 @@ package one.xingyi.cddengine
 import java.text.MessageFormat
 
 import one.xingyi.cddscenario.{HasScenarios, Scenario, ScenarioLogic}
-import one.xingyi.cddutilities.{CddTest, IdMaker}
+import one.xingyi.cddutilities._
 import one.xingyi.cddutilities.json.{JsonMaps, JsonObject, JsonWriter, TemplateEngine}
 
 import scala.collection.concurrent.TrieMap
@@ -41,6 +41,9 @@ class SimpleEngineTools[P, R](engine: Engine1[P, R]) extends EngineTools[P, R] {
     DecisionTreeRendering.print.apply[P, R](printPrinter[J], tracePrinter[J])(prefix, engine)
   def test(name: String): CddTest = new SimpleTestMaker[P, R](name, engine).apply
 }
+
+
+
 case class Engine1[P, R](decisionTree: DecisionTree[P, R], scenarios: List[Scenario[P, R]], useCases: List[UseCase[P, R]]) extends Engine[P, R] {
   def logicFor(p: P): ScenarioLogic[P, R] = decisionTree.root.findLens(p).get(decisionTree.root).logic
   override def isDefinedAt(p: P): Boolean = logicFor(p).fn.isDefinedAt(p)

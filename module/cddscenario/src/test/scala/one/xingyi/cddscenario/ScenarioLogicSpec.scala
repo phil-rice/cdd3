@@ -8,10 +8,8 @@ class ScenarioLogicSpec extends CddSpec {
 
   it should "have an empty method" in {
 
-    val empty = ScenarioLogic.empty[Int, Int]
-    empty.code shouldBe None
-    empty.definedAt shouldBe None
-    empty.result shouldBe None
+    val empty:NoScenarioLogic[Int,Int] = ScenarioLogic.empty[Int, Int]
+    empty.ifString shouldBe "<empty>"
     empty.definedInSourceCodeAt.toString shouldBe "(ScenarioLogicSpec.scala:11)"
   }
 

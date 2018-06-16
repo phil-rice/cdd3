@@ -30,11 +30,14 @@ class ScBuilder[P, R, HasResult, HasWhen, HasCode, HasBecause](protected[cddscen
   protected[cddscenario] def withData(data: EngineComponentData) = new ScBuilder[P, R, HasResult, HasWhen, HasCode, HasBecause](id, situation, data, optResult, optWhen, optCode, optBecause, ifString, thenString)
 
   //TODO revisit this and sort out scenario logic. Also need the if string and perhaps the then string
-  protected[cddscenario] def scenarioLogic = optBecause match {
-    case None => SingleScenarioLogic(optResult, optWhen, optCode, data.definedInSourceCodeAt, ifString)
-    case Some(b) => SingleScenarioLogic(optResult, Some(BecauseDefinedAt(b)), Some(b), data.definedInSourceCodeAt, ifString)
+  protected[cddscenario] def scenarioLogic: SingleScenarioLogic[P, R] = (optWhen, optCode, optBecause, optResult) match {
+    case (Some(w), Some(c), None, _) => WhenCodeScenarioLogic(w, c, data.definedInSourceCodeAt, ifString)
+    case (Some(w), None, None, Some(r)) => WhenResultScenarioLogic(w, r, data.definedInSourceCodeAt, ifString)
+    case (None, None, Some(b), _) => BecauseScenarioLogic(b, data.definedInSourceCodeAt, ifString)
+    case (None, None, None, Some(r)) => ResultScenarioLogic(r, data.definedInSourceCodeAt, ifString)
+    case x => throw new RuntimeException(s"Unexpected pattern of whens and becauses and stuff $x")
   }
-  def scenario = Scenario[P, R](situation, scenarioLogic, List(), data)
+  def scenario = Scenario[P, R](situation, optResult, scenarioLogic, List(), data)
   protected[cddscenario] def withResultPrim(r: R) = new ScBuilder[P, R, Yes, HasWhen, No, No](id, situation, data, Some(r), optWhen, optCode, optBecause, ifString, thenString)
   protected[cddscenario] def withBecausePrim(because: PartialFunction[P, R], ifString: String, thenString: String) = new ScBuilder[P, R, HasResult, No, HasCode, Yes](id, situation, data, optResult, optWhen, optCode, Some(because), ifString, thenString)
 }
