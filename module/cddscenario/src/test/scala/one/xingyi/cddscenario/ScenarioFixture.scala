@@ -1,13 +1,12 @@
 package one.xingyi.cddscenario
 
-import one.xingyi.cddscenario.NullScenarioAggregator._
-import one.xingyi.cddscenario.UntypedScenarioBuilder._
-import one.xingyi.cddutilities.{CddSpec, DefinedInSourceCodeAt}
+import one.xingyi.cddutilities.CddSpec
 import org.scalatest.Matchers
 
 import scala.language.postfixOps
 
-trait ScenarioFixture extends Matchers {
+trait ScenarioFixture extends Matchers with EngineBuilderLanguage1 {
+  private implicit val nullScenarioAggregator = NullScenarioAggregator2.nullAggregator[String, String]
   val snormal = scenario("woman with passport") produces "accept" scenario
   val snormal2 = scenario("man with passport") produces "accept" scenario
   val sNoPassport = scenario("woman") produces "reject" when (!_.contains("passport")) scenario

@@ -25,21 +25,20 @@ object UseCase1 {
     override def useCases[P, R](t: UseCase1[P, R]): List[UseCase1[P, R]] = List(t)
   }
 }
-class UseCase1[P, R](val data: EngineComponentData) extends UseCase[P, R] with IdMaker {
+class UseCase1[P, R](val data: EngineComponentData) extends UseCase[P, R] with EngineBuilderLanguage1 {
   def this(title: String) = this(EngineComponentData(definedInSourceCodeAt = DefinedInSourceCodeAt.definedInSourceCodeAt(), title = Some(title)))
-  protected implicit val aggregator = new RememberingScenarioAggregator[P, R]
-  protected def scenario(p: P) = RawSituation[P](p, ScenarioBuilderData[P, Nothing](getNextId, p, title = None, isDefinedAt = DefinedInSourceCodeAt.definedInSourceCodeAt(2)))
+  protected implicit val aggregator = new RememberingScenarioAggregator2[P, R]
   def allScenarios = aggregator.scenarios
   def or(useCase1: UseCase1[P, R]) = new CompositeUseCase[P, R](List(this, useCase1), EngineComponentData(DefinedInSourceCodeAt.definedInSourceCodeAt(), None))
   override def allUseCases: List[UseCase[P, R]] = List()
 }
 
-class UseCase2[P1, P2, R](data: EngineComponentData) extends UseCase1[(P1, P2), R](data) {
+class UseCase2[P1, P2, R](data: EngineComponentData) extends UseCase1[(P1, P2), R](data) with EngineBuilderLanguage2 {
   def this(title: String) = this(EngineComponentData(definedInSourceCodeAt = DefinedInSourceCodeAt.definedInSourceCodeAt(), title = Some(title)))
-  protected def scenario(p1: P1, p2: P2): RawSituation2[P1, P2] = {
-    val data = ScenarioBuilderData[(P1, P2), Nothing](getNextId, (p1, p2), title = None, isDefinedAt = DefinedInSourceCodeAt.definedInSourceCodeAt(2))
-    RawSituation2(p1, p2, data)
-  }
+//  protected def scenario(p1: P1, p2: P2): RawSituation2[P1, P2] = {
+//    val data = ScenarioBuilderData[(P1, P2), Nothing](getNextId, (p1, p2), title = None, isDefinedAt = DefinedInSourceCodeAt.definedInSourceCodeAt(2))
+//    RawSituation2(p1, p2, data)
+//  }
 }
 
 object CompositeUseCase {
