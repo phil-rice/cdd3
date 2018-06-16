@@ -4,7 +4,11 @@ package one.xingyi.cddutilities
 object Lens {
   def identity[X] = Lens[X, X](a => a, (a, b) => b)
   def cast[X, Y] = Lens[X, Y](a => a.asInstanceOf[Y], (a, b) => b.asInstanceOf[X])
+
+
 }
+
+
 case class Lens[A, B](get: A => B, set: (A, B) => A) extends Immutable {
   def apply(whole: A): B = get(whole)
   def transform(a: A, f: B => B): A = set(a, f(get(a)))
@@ -12,4 +16,6 @@ case class Lens[A, B](get: A => B, set: (A, B) => A) extends Immutable {
     c => get(that.get(c)),
     (c, b) => that.transform(c, set(_, b)))
   def andThen[C](that: Lens[B, C]) = that compose this
+  def andGet[C](fn: B => C) = get andThen fn
+  def andSet[C](fn: (B, C) => B): (A, C) => A = (a, c) => set(a, fn(get(a), c))
 }
