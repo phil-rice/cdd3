@@ -99,12 +99,23 @@ val cddscalatest = (project in file("module/cddscalatest")).
   dependsOn(cddengine % "test->test;compile->compile").
   settings(scalatestSeetings)
 
+val cddlegacy = (project in file("module/cddlegacy")).
+  dependsOn(cddutilities % "test->test;compile->compile").
+  dependsOn(cddengine % "test->test;compile->compile").
+  settings(publishSettings)
+
+val cddapachejdbc = (project in file("module/cddapachejdbc")).
+  dependsOn(cddutilities % "test->test;compile->compile").
+  settings(publishSettings)
+
 val cddexamples = (project in file("module/cddexamples")).
   dependsOn(cddutilities % "test->test;compile->compile").
   dependsOn(cddengine % "test->test;compile->compile").
   dependsOn(cddjson4s % "test->test;compile->compile").
   dependsOn(cddscalatest % "test->test;compile->compile").
   dependsOn(cddmustache % "test->test;compile->compile").
+  dependsOn(cddlegacy % "test->test;compile->compile").
+  dependsOn(cddapachejdbc % "test->test;compile->compile").
   settings(publishSettings)
 
 val cddtest = (project in file("module/cddtest")).
@@ -114,7 +125,8 @@ val cddtest = (project in file("module/cddtest")).
   dependsOn(cddjson4s % "test->test;compile->compile").
   settings(publishSettings)
 
+
 val cdd3 = (project in file(".")).
   settings(publishSettings).
   settings(publishArtifact := false).
-  aggregate(cddengine, cddutilities, cddscenario, cddtest, cddjson4s, cddmustache, cddscalatest, cddexamples)
+  aggregate(cddengine, cddutilities, cddscenario, cddtest, cddjson4s, cddmustache, cddscalatest, cddlegacy, cddapachejdbc, cddexamples)
