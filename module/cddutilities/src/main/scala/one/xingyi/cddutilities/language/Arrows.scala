@@ -3,6 +3,8 @@ package one.xingyi.cddutilities.language
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import one.xingyi.cddutilities.ClosableFunction1
+
 import scala.util.Try
 object AnyLanguage extends AnyLanguage
 trait AnyLanguage {
@@ -34,7 +36,7 @@ trait AnyLanguage {
 
   implicit class AtomicIntegerOps(a: AtomicInteger) {
     def tick(size: Int)(fn: => Unit): Unit = {
-      if (a.updateAndGet { old => if (old % size == 0) 0 else old + 1 } == 0) fn
+      if (a.updateAndGet { old => if (old >= size - 1) 0 else old + 1 } == 0) fn
     }
     def ifNotZero(fn: => Unit): Unit = {
       if (a.get != 0) fn
@@ -42,34 +44,50 @@ trait AnyLanguage {
   }
 }
 
+
+object Closer {
+  implicit def tupleCloser[T1, T2](implicit closer1: Closer[T1], closer2: Closer[T2]): Closer[(T1, T2)] = tuple => try closer2(tuple._2) finally closer1(tuple._1)
+}
+trait Closer[T] extends (T => Unit)
 object FunctionLanguage extends FunctionLanguage
+
+class FromWord[From] {
+  def make[To](fn: From => To)(implicit closer: Closer[From]) = new ClosableFunction1[From, To](fn)
+  //  case class make[Mid](makeFn: From => Mid)(implicit midCloser: Closer[Mid]) {
+  //    case class makeBoth[Mid2](makeFn2: Mid => Mid2)(implicit mid2Closer: Closer[Mid2]) {
+  //      case class and[Mid3](makeFn3: Mid => Mid3)(implicit mid3Closer: Closer[Mid3]) {
+  //        def thenDo[To](fn: Mid2 => Mid3 => To): From => To = { from: From =>
+  //          val mid = makeFn(from)
+  //          try {
+  //            val mid2 = makeFn2(mid)
+  //            try {
+  //              val mid3 = makeFn3(mid)
+  //              try {
+  //                fn(mid2)(mid3)
+  //              } finally {mid3Closer(mid3)}
+  //            } finally {mid2Closer(mid2)}
+  //          } finally {midCloser(mid)}
+  //        }
+  //      }
+  //    }
+  //    case class andMake[Mid2](makeFn2: Mid => Mid2)(implicit mid2Closer: Closer[Mid2]) {
+  //      def thenDo[To](fn: Mid2 => To): From => To = { from: From =>
+  //        val mid = makeFn(from)
+  //        try {
+  //          val mid2 = makeFn2(mid)
+  //          try {fn(mid2)} finally {mid2Closer(mid2)}
+  //        } finally {midCloser(mid)}
+  //      }
+  //    }
+  //    def thenDo[To](fn: Mid => To)(implicit midCloser: Closer[Mid]): From => To = { from: From =>
+  //      val mid = makeFn(from)
+  //      try {fn(mid)} finally midCloser(mid)
+  //    }
+
+}
 trait FunctionLanguage {
 
-  case class from[From](from: From) {
-    case class make[Mid](makeFn: From => Mid) {
-      case class andMake[Mid2](makeFn2: Mid => Mid2) {
-        case class thenDo[To](fn: Mid2 => To) {
-          case class andCloseWith(closeFn1: Mid => Unit) {
-            def and(closeFn2: Mid2 => Unit): To = {
-              val mid = makeFn(from)
-              val mid2 = makeFn2(mid)
-              try {fn(mid2)} finally {
-                closeFn2(mid2);
-                closeFn1(mid)
-              }
-            }
-          }
-        }
-      }
-      case class thenDo[To](fn: Mid => To) {
-        def andCloseWith(closeFn: Mid => Unit): To = {
-          val mid = makeFn(from)
-          try {fn(mid)} finally closeFn(mid)
-        }
-      }
-    }
-  }
-
+  def from[From] = new FromWord[From]
   implicit class FunctionOps[From, To](fn1: From => To) {
     //    def callThenClose[RealFrom](startFn: RealFrom => From)(closeFn: Try[To] => Unit): RealFrom => To = { realFrom: RealFrom =>
     //      startFn(realFrom)

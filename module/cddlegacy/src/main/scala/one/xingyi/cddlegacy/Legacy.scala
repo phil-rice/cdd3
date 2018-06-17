@@ -1,7 +1,7 @@
 package one.xingyi.cddlegacy
 
-case class LegacyData[P, R](id: String, situation: P, expected: R)
-case class LegacyResult(id: String, failure: Option[String])
+case class LegacyData[P, R](id: Int, situation: P, expected: R)
+case class LegacyResult(id: Int, failure: Option[String])
 
 object LegacyResult {
   def apply[P, R](legacyData: LegacyData[P, R])(engine: P => R)(implicit failureCategoriser: FailureCategoriser[P, R]): LegacyResult =

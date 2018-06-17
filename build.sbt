@@ -65,6 +65,12 @@ lazy val mustacheSettings = publishSettings ++ Seq(
 lazy val junitSettings = publishSettings ++ Seq(
   libraryDependencies += "junit" % "junit" % versions.junit
 )
+lazy val apacheDbcp2Settings = publishSettings ++ Seq(
+  libraryDependencies += "org.apache.commons" % "commons-dbcp2" % "2.3.0",
+  libraryDependencies += "com.h2database" % "h2" % "1.4.197"
+
+
+)
 
 lazy val scalatestSeetings = publishSettings ++ Seq(
   libraryDependencies += "org.scalatest" %% "scalatest" % versions.scalatest
@@ -106,7 +112,7 @@ val cddlegacy = (project in file("module/cddlegacy")).
 
 val cddapachejdbc = (project in file("module/cddapachejdbc")).
   dependsOn(cddutilities % "test->test;compile->compile").
-  settings(publishSettings)
+  settings(apacheDbcp2Settings)
 
 val cddexamples = (project in file("module/cddexamples")).
   dependsOn(cddutilities % "test->test;compile->compile").
@@ -123,6 +129,8 @@ val cddtest = (project in file("module/cddtest")).
   dependsOn(cddengine % "test->test;compile->compile").
   dependsOn(cddscenario % "test->test;compile->compile").
   dependsOn(cddjson4s % "test->test;compile->compile").
+  dependsOn(cddlegacy % "test->test;compile->compile").
+  dependsOn(cddapachejdbc % "test->test;compile->compile").
   settings(publishSettings)
 
 

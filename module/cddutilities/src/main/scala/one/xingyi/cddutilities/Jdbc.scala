@@ -4,27 +4,41 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import javax.sql.DataSource
 import one.xingyi.cddutilities.Batcher.jdbcInsert
-import one.xingyi.cddutilities.Jdbc.{foreachResultSet, withConnection, withPreparedStatement}
 import one.xingyi.cddutilities.language.AnyLanguage._
+import one.xingyi.cddutilities.language.Closer
 import one.xingyi.cddutilities.language.FunctionLanguage._
 
 import scala.language.postfixOps
 
 object Jdbc extends Jdbc
+
+
 trait Jdbc {
+  implicit val datasourceCloser: Closer[DataSource] = { c => } //bit of an issue here. We don't actually want to close the first one...
+  implicit val connectionCloser: Closer[Connection] = { c => c.close() }
+  implicit val statementCloser: Closer[Statement] = { s => s.close() }
+  implicit val preparsedStatementCloser: Closer[PreparedStatement] = { s => s.close() }
+  implicit val resultSetCloser: Closer[ResultSet] = { rs => rs.close() }
 
-  def withConnection[X](dataSource: DataSource)(fn: Connection => X): X = from(dataSource) make (_.getConnection) thenDo fn andCloseWith (_.close)
+  val connection = { d: DataSource => d.getConnection }
+  val statement = { c: Connection => c.createStatement() }
+  def prepare(sql: String) = { c: Connection => c.prepareStatement(sql) }
+  def toResultSet(sql: String) = { s: Statement => s.executeQuery(sql) }
+  def execute(sql: String) = { s: Statement => s.execute(sql) }
 
-  def withStatement[X](fn: Statement => X)(implicit connection: Connection): X = from(connection) make (_.createStatement) thenDo fn andCloseWith (_.close)
-
-  def withResultSet[X](sql: String)(fn: ResultSet => X)(implicit connection: Connection): X =
-    from(connection) make (_.createStatement) andMake (_.executeQuery(sql)) thenDo fn andCloseWith (_.close) and (_.close)
-
-  def foreachResultSet[X](sql: String)(transform: ResultSet => X)(block: X => Unit)(implicit connection: Connection): Unit =
-    from(connection) make (_.createStatement) andMake (_.executeQuery(sql)) thenDo (resultSet => while (resultSet.next()) block(transform(resultSet))) andCloseWith (_.close) and (_.close)
-
-  def withPreparedStatement[X](sql: String)(fn: PreparedStatement => X)(implicit connection: Connection): X =
-    from(connection) make (_.prepareStatement(sql)) thenDo fn andCloseWith (_.close)
+  def executeSql(sql: String) = from[DataSource] make connection and statement and execute(sql)
+  def getValue[X](sql: String)(fn: ResultSet => X) = from[DataSource] make (_.getConnection) and (_.createStatement) and { statement =>
+    val resultSet = statement.executeQuery(sql)
+    if (!resultSet.next()) throw new RuntimeException(s"No values for $sql")
+    val result = fn(resultSet)
+    if (resultSet.next()) throw new RuntimeException(s"Too many values for $sql")
+    result
+  }
+  def getList[X](sql: String)(fn: ResultSet => X) = from[DataSource] make connection and statement and toResultSet(sql) thenDo { resultSet =>
+    var list = List[X]()
+    while (resultSet.next()) {list = fn(resultSet) :: list}
+    list.reverse
+  }
 }
 
 case class BatchConfig[T](batchSize: Int, prepare: T => Unit, flush: () => Unit)
@@ -34,13 +48,27 @@ class Batcher[T](batchConfig: BatchConfig[T], count: AtomicInteger = new AtomicI
   def close = count ifNotZero flush()
 }
 
-case class ReadAndBatch[From, To](dataSource: DataSource)(readSql: String, readFn: ResultSet => From, fn: From => To, writeSql: String, preparer: To => List[Object], batchSize: Int) {
-  def doit = withConnection(dataSource) { implicit connection => withPreparedStatement(writeSql) { implicit writeStatement => jdbcInsert(batchSize, preparer) applyTo foreachResultSet[To](readSql)(readFn andThen fn) } }
+import one.xingyi.cddutilities.Jdbc._
+case class ReadAndBatch[From, To](readSql: String, readFn: ResultSet => From, fn: From => To, writeSql: String, preparer: To => List[Object], batchSize: Int) {
+  val doIt: DataSource => Unit = {
+    from[DataSource] make connection makeBoth statement and prepare(writeSql) and { case (readStatement, writeStatement) =>
+      from[Statement] make toResultSet(readSql) thenDo { resultSet =>
+        val batchInserter = jdbcInsert(batchSize, preparer)(writeStatement)
+        while (resultSet.next()) {
+          val from = readFn(resultSet)
+          val to = fn(from)
+          batchInserter(to)
+        }
+        batchInserter.close
+      } apply readStatement
+    }
+  }
 }
+
 
 trait JdbcInserter[T] extends (Int => PreparedStatement => (T => List[Object]) => Unit)
 object Batcher {
-  def jdbcInsert[T](batchSize: Int, preparer: T => List[Object])(implicit statement: PreparedStatement): Batcher[T] =
+  def jdbcInsert[T](batchSize: Int, preparer: T => List[Object])(statement: PreparedStatement): Batcher[T] =
     new Batcher(BatchConfig(batchSize,
       { t => preparer(t).zipWithIndex.foreach { case (o, i) => statement.setObject(i + 1, o) }; statement.addBatch() },
       { () => statement.executeBatch() }))
