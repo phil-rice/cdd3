@@ -15,10 +15,6 @@ sealed trait DecisionTreeNode[P, R] {
 }
 
 object DecisionTreeNodeFold {
-  def findWithParents[P, R](tree: DecisionTree[P, R], situation: P) = tree.root.fold(new DecisionTreeNodeFold[List[DecisionTreeNode[P, R]], P, R] {
-    override def concFn: ConclusionNode[P, R] => List[DecisionTreeNode[P, R]] = List(_)
-    override def decFn: DecisionNode[P, R] => List[DecisionTreeNode[P, R]] = d => if (d.logic.fn.isDefinedAt(situation)) d :: d.ifTrue.fold(this) else d :: d.ifFalse.fold(this)
-  })
 }
 trait DecisionTreeNodeFold[Acc, P, R] {
   def concFn: ConclusionNode[P, R] => Acc
@@ -35,7 +31,7 @@ case class ConclusionNode[P, R](scenarios: List[Scenario[P, R]], logic: Scenario
 }
 
 object DecisionNode {
-  implicit def isDefined[P, R]: IsDefinedInSourceCodeAt[DecisionNode[P, R]] = { d =>  DefinedInSourceCodeAt(d.logic) }
+  implicit def isDefined[P, R]: IsDefinedInSourceCodeAt[DecisionNode[P, R]] = { d => DefinedInSourceCodeAt(d.logic) }
 }
 
 case class DecisionNode[P, R](logic: ScenarioLogic[P, R], ifFalse: DecisionTreeNode[P, R], ifTrue: DecisionTreeNode[P, R]) extends DecisionTreeNode[P, R] {
@@ -47,10 +43,10 @@ case class DecisionNode[P, R](logic: ScenarioLogic[P, R], ifFalse: DecisionTreeN
   override def fold[Acc](fold: DecisionTreeNodeFold[Acc, P, R]): Acc = fold.decFn(this)
 }
 
-class DefaultNotSpecifiedException[P](p: P) extends RuntimeException(s"Default has not been specified")
+//class DefaultNotSpecifiedException[P](p: P) extends RuntimeException(s"Default has not been specified")
 
 object DecisionTreeNode {
-  def defaultFn[P, R]: P => R = { p: P => throw new DefaultNotSpecifiedException(p) }
+//  def defaultFn[P, R]: P => R = { p: P => throw new DefaultNotSpecifiedException(p) }
   def nodeToDNL[P, R] = Lens.cast[DecisionTreeNode[P, R], DecisionNode[P, R]]
   def nodeToConcL[P, R] = Lens.cast[DecisionTreeNode[P, R], ConclusionNode[P, R]]
   def DNLtoFalse[P, R] = Lens[DecisionNode[P, R], DecisionTreeNode[P, R]](_.ifFalse, (dn, c) => dn.copy(ifFalse = c))
@@ -66,7 +62,12 @@ case class DecisionTree[P, R](root: DecisionTreeNode[P, R], issues: List[Decisio
 
 object DecisionTree {
   def empty[P, R]: DecisionTree[P, R] = DecisionTree(ConclusionNode(List(), ScenarioLogic.empty), List())
-  def parentNodes[P, R](tree: DecisionTree[P, R])(s: Scenario[P, R]) = DecisionTreeNodeFold.findWithParents[P, R](tree, s.situation)
+
+  def findWithParents[P, R](tree: DecisionTree[P, R], situation: P) = tree.root.fold(new DecisionTreeNodeFold[List[DecisionTreeNode[P, R]], P, R] {
+    override def concFn: ConclusionNode[P, R] => List[DecisionTreeNode[P, R]] = List(_)
+    override def decFn: DecisionNode[P, R] => List[DecisionTreeNode[P, R]] = d => if (d.logic.fn.isDefinedAt(situation)) d :: d.ifTrue.fold(this) else d :: d.ifFalse.fold(this)
+  })
+  def findWithParentsForScenario[P, R](tree: DecisionTree[P, R])(s: Scenario[P, R]) = findWithParents[P, R](tree, s.situation)
 }
 
 

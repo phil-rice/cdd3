@@ -2,21 +2,30 @@
 package one.xingyi.cddengine
 import one.xingyi.cddscenario.{SingleScenarioLogic, WhenResultScenarioLogic}
 import one.xingyi.cddutilities.CddSpec
-class EngineSpec extends CddSpec with DecisionTreeFixture {
 
-  behavior of "Engine smoke tests"
-
+trait EngineFixture extends DecisionTreeFixture {
   val containsA = { s: String => s contains "a" }
   val containsB = { s: String => s contains "b" }
 
+  val usecase1 = new UseCase1[String, String]("use case about A") {
+    scenario("a") produces "A" when containsA
+     scenario("aw") produces "A"
+  }
+  val usecase2 = new UseCase1[String, String]("use case about B") {
+    val b = scenario("b") produces "B"
+    val bw = scenario("bw") produces "B"
+  }
+  val e = Engine(usecase1 or usecase2)
+
+
+}
+class EngineSpec extends CddSpec with EngineFixture {
+
+  behavior of "Engine smoke tests"
+
+
   it should "not smoke" in {
 
-    val e = Engine(new UseCase1[String, String]("engine") {
-      scenario("a") produces "A" when containsA
-      scenario("aw") produces "A"
-      scenario("b") produces "B"
-      scenario("bw") produces "B"
-    })
 
     val DecisionTree(DecisionNode(dlLogic: SingleScenarioLogic[String, String],
     ConclusionNode(List(sb, sbw), falseLogic: SingleScenarioLogic[String, String]),
@@ -57,7 +66,7 @@ class EngineSpec extends CddSpec with DecisionTreeFixture {
     saw.situation shouldBe "aw"
     sc.situation shouldBe "c"
     scw.situation shouldBe "cw"
-    dlLogic.asInstanceOf[WhenResultScenarioLogic[String,String]].when shouldBe containsA
+    dlLogic.asInstanceOf[WhenResultScenarioLogic[String, String]].when shouldBe containsA
 
 
     e("a") shouldBe "A"

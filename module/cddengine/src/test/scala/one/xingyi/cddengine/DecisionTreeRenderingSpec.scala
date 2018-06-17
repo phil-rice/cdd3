@@ -3,7 +3,7 @@ package one.xingyi.cddengine
 import one.xingyi.cddutilities.CddSpec
 import one.xingyi.cddutilities.json._
 
-class DecisionTreeRenderingSpec extends CddSpec with DecisionTreeFixture with JsonWriterLangauge {
+class DecisionTreeRenderingSpec extends CddSpec with DecisionTreeFixture with JsonWriterLanguage {
 
   behavior of "SimpleDecisionTreeRendering"
 

@@ -20,8 +20,8 @@ case class RenderingConfig(rootTraceDirectory: String = "target/cdd/trace", root
 object DecisionTreeRendering {
   def simple[P: ShortPrint, R: ShortPrint](implicit urlGenerator: EngineUrlGenerators[P,R]): DecisionTreeRendering[JsonObject, P, R] = new SimpleDecisionTreeRendering[P, R]
   def withScenario[P: ShortPrint, R: ShortPrint](data: WithScenarioData[P, R])(implicit urlGenerator: EngineUrlGenerators[P,R]): DecisionTreeRendering[JsonObject, P, R] = new WithScenarioRendering[P, R](data)
-  def trace = new TraceRenderer
-  def print = new PrintPagesRenderer
+//  def trace = new TraceRenderer
+//  def print = new PrintPagesRenderer
 }
 
 object PrintRenderToFile{
@@ -36,7 +36,7 @@ class TraceRenderer {
     val scenarios: List[Scenario[P, R]] = engine.tools.scenarios
     val list = DecisionTreeFolder.trace[P, R](scenarios)
     list.zipWithIndex.foreach { case t@(traceData, i) => printRenderToFile(urlGenerators.scenario.trace(prefix, traceData.s)) { pw =>
-      val actualRendering = rendering(WithScenarioData(traceData.s, DecisionTree.parentNodes(traceData.tree)(traceData.s)))
+      val actualRendering = rendering(WithScenarioData(traceData.s, DecisionTree.findWithParentsForScenario(traceData.tree)(traceData.s)))
       pw.write(actualRendering.engine apply Engine1[P, R](traceData.tree, scenarios.take(i), engine.tools.useCases))
     }
     }
@@ -52,7 +52,7 @@ class PrintPagesRenderer {
     printRenderToFile(urlGenerators.engine.print(prefix, engine))(_.print(rendering.engine(engine)))
     engine.tools.useCases.zipWithIndex.foreach { case (uc, i) => printRenderToFile(urlGenerators.usecase.print(prefix, uc))(pw => pw.print(rendering.useCase(uc))) }
     engine.tools.scenarios.zipWithIndex.foreach { case (s, i) =>
-      val actualRendering = scenarioRendering(WithScenarioData(s, DecisionTree.parentNodes(engine.tools.decisionTree)(s)))
+      val actualRendering = scenarioRendering(WithScenarioData(s, DecisionTree.findWithParentsForScenario(engine.tools.decisionTree)(s)))
       printRenderToFile(urlGenerators.scenario.print(prefix, s))(pw => pw.print(actualRendering.engine(engine)))
     }
   }
@@ -72,7 +72,7 @@ trait DecisionTreeRendering[J, P, R] {
   def andThen[J1](fn: J => J1): DecisionTreeRendering[J1, P, R] = new TransformingTreeRending(this, fn)
 }
 
-class TransformingTreeRending[J, J1, P, R](rendering: DecisionTreeRendering[J, P, R], transform: J => J1) extends DecisionTreeRendering[J1, P, R] {
+class TransformingTreeRending[J, J1, P, R](val rendering: DecisionTreeRendering[J, P, R], val transform: J => J1) extends DecisionTreeRendering[J1, P, R] {
   override def engine: Engine[P, R] => J1 = rendering.engine andThen transform
   override def tree: DecisionTree[P, R] => J1 = rendering.tree andThen { p => println("in println" + p); p } andThen transform
   override def useCase(): UseCase[P, R] => J1 = rendering.useCase andThen transform

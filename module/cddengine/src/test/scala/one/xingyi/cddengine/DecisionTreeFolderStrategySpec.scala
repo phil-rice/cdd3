@@ -22,6 +22,16 @@ class AbstractDtFolderStrategySpec(val fold: DTFolderStrategy) extends CddSpec w
 
 
 }
+class NullOpSpec extends AbstractDtFolderStrategySpec(NullOp) with DecisionTreeFixture {
+  it should "not be defined" in {
+    isDefinedAt(cEmpty, sa) shouldBe false
+    isDefinedAt(c(sa), saba) shouldBe false
+    isDefinedAt(c(sawa), sb) shouldBe false
+  }
+  it should "throw exception if called" in {
+    intercept[IllegalStateException](fold(FolderData(cEmpty, sa)))
+  }
+}
 class AddScenarioToEmptyConclusionSpec extends AbstractDtFolderStrategySpec(AddScenarioToEmptyConclusion) with DecisionTreeFixture {
 
   it should "accept a conclusion node that is empty and any scenario" in {
