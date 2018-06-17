@@ -2,11 +2,8 @@
 package one.xingyi.cddexamples
 
 import one.xingyi.cddengine._
-import one.xingyi.cddmustache.{Mustache, MustacheBuilder, MustacheWithTemplate}
+import one.xingyi.cddmustache.Mustache
 import one.xingyi.cddscenario.InternetDocument
-import one.xingyi.cddutilities.LeftRightTree
-import one.xingyi.cddutilities.json.{JsonMaps, JsonObject, JsonValue, JsonWriter}
-import org.json4s.JsonAST.JValue
 class Tennis {
   val definition = InternetDocument("CodingDojo", "http://codingdojo.org/cgi-bin/wiki.pl?KataTennis")
   val wikipedia = InternetDocument("Wikipedia", "http://en.wikipedia.org/wiki/Tennis_score")
@@ -78,8 +75,8 @@ class Tennis {
 
 
 object Tennis extends Tennis with App {
-  import one.xingyi.json4s.Json4s._
   import Mustache._
+  import one.xingyi.json4s.Json4s._
 
   implicit def v[P, R] = new SimpleValidation[P, R]
   tennis.tools.trace("tennis")
