@@ -10,7 +10,3 @@ object LegacyResult {
 
 trait FailureCategoriser[P, R] extends ((P, R) => Option[String])
 
-
-class Legacy {
-
-}
