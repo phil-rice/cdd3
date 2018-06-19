@@ -35,21 +35,12 @@ trait Jdbc {
     connection ===> statement ===> toResultSet(sql) ==> toSingleResultSet ==> fn ====> result
   def getList[M[_] : ClosableM, X](sql: String)(fn: ResultSet => X): DataSource => List[X] =
     connection ===> statement ===> toResultSet(sql) ==> toList(fn) ====> result
-//  def process[M[_] : ClosableM, X](batchSize: Int)(readSql: String, fn: ResultSet => X)(writeSql: String, preparer: X => List[Object]) =
-//    new ClosableKleislTupleOps(connection =>=> (prepare(writeSql) ===> jdbcInsert[M, X](batchSize, preparer))) -==> statement;
-//  //  statement ===> toResultSet(readSql) ==> ba
-  //  val batcher = (prepare(writeSql) ==> jdbcInsert(batchSize, preparer)) (connection)
-  //  val r: M[Unit] = batcher.map[Unit](b => Batcher.apply(b, fn)(resultSet))
-  //}
-  //}
-  //====> result
-  //
-  //
-  //}
-  //====> result
+
+  def process[M[_] : ClosableM, From, To](batchSize: Int)(readSql: String, readFn: ResultSet => From)(writeSql: String, preparer: To => List[Object])(fn: From => To): DataSource => M[Unit] =
+    connection ===> inParallel(statement ===> toResultSet(readSql)).and(prepare(writeSql) ===> jdbcInsert[M, To](batchSize, preparer)).merge(Batcher(readFn andThen fn))
+
+
 }
-
-
 case class BatchConfig[T](batchSize: Int, prepare: T => Unit, flush: () => Unit)
 class Batcher[T](batchConfig: BatchConfig[T], count: AtomicInteger = new AtomicInteger(0)) extends (T => Unit) with AutoCloseable {
   import batchConfig._
@@ -58,17 +49,14 @@ class Batcher[T](batchConfig: BatchConfig[T], count: AtomicInteger = new AtomicI
 }
 
 
-trait JdbcInserter[T] extends (Int => PreparedStatement => (T => List[Object]) => Unit)
 object Batcher {
-  def apply[X](batcher: Batcher[X], fn: ResultSet => X): ResultSet => Unit = ???
-  def processResultSet[T](readFn: ResultSet => T)(batcher: Batcher[T])(resultSet: ResultSet) =
-    while (resultSet.next()) batcher(readFn(resultSet))
+  def apply[T](readFn: ResultSet => T)(resultSet: ResultSet)(batcher: Batcher[T]): Unit = while (resultSet.next()) batcher(readFn(resultSet))
 
 
   import ClosableLanguage._
   def jdbcInsert[M[_] : ClosableM, T](batchSize: Int, preparer: T => List[Object])(statement: PreparedStatement): M[Batcher[T]] =
     new Batcher[T](BatchConfig(batchSize,
       { t => preparer(t).zipWithIndex.foreach { case (o, i) => statement.setObject(i + 1, o) }; statement.addBatch() },
-      { () => statement.executeBatch() })).liftClosable
+      { () => statement.executeBatch() ; statement.clearBatch()})).liftClosable
 
 }

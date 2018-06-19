@@ -7,6 +7,7 @@ trait ClosableM[M[_]] {
   def liftM[T](t: T, closables: Seq[AutoCloseable]): M[T]
   def map[T, T1](m: M[T], fn: T => T1): M[T1]
   def flatmap[T, T1](m: M[T], fn: T => M[T1]): M[T1]
+  def join[T, T1](values: Seq[M[T1]]): M[Seq[T1]]
   def close[T](m: M[T]): T
 }
 
@@ -41,16 +42,38 @@ trait ClosableLanguage {
   }
 
   def result[T] = { t: T => t }
+
+  def join[M[_], From, T](fns: (From => M[T])*)(implicit closableM: ClosableM[M]): From => M[Seq[T]] = { from: From =>
+    closableM.join(fns.map(fn => fn(from)))
+
+  }
+  def inParallel[M[_] : ClosableM, From, T1](fn1: From => M[T1]) = new InParallelWord[M, From, T1](fn1)
+  class InParallelWord[M[_], From, T1](fn1: From => M[T1])(implicit closableM: ClosableM[M]) {
+    def and[T2](fn2: From => M[T2]) = new AndWord(fn2)
+    class AndWord[T2](fn2: From => M[T2]) {
+      def merge[Result](merge: T1 => T2 => Result): From => M[Result] = { from: From =>
+        val mt1 = fn1(from)
+        val mt2 = fn2(from)
+        mt1.flatmap(t1 => mt2.map(t2 => merge(t1)(t2)))
+      }
+    }
+  }
 }
 
 case class SimpleClosable[T](value: T, closables: Seq[AutoCloseable]) {
-  def addClosersFrom[TOld](m: SimpleClosable[TOld]) = SimpleClosable(value, m.closables ++ closables)
+  def addClosersFrom[TOld](m: SimpleClosable[TOld]) = SimpleClosable(value, closables ++ m.closables )
 }
 object SimpleClosable {
   implicit object SimpleClosableMonad extends ClosableM[SimpleClosable] {
     override def liftM[T](t: T, closables: Seq[AutoCloseable]): SimpleClosable[T] = SimpleClosable(t, closables)
     override def map[T, T1](m: SimpleClosable[T], fn: T => T1): SimpleClosable[T1] = SimpleClosable(fn(m.value), m.closables)
     override def flatmap[T, T1](m: SimpleClosable[T], fn: T => SimpleClosable[T1]) = fn(m.value) addClosersFrom m
-    override def close[T](m: SimpleClosable[T]): T = {m.closables.foreach(_.close()); m.value}
+    override def close[T](m: SimpleClosable[T]): T = {m.closables.foreach{c=>c.close}; m.value}
+
+    override def join[T, T1](values: Seq[SimpleClosable[T1]]): SimpleClosable[Seq[T1]] = {
+      val vs = values.map(_.value)
+      val closables = values.foldLeft(List[AutoCloseable]())((acc, c) => acc ++ c.closables)
+      SimpleClosable(vs, closables)
+    }
   }
 }
