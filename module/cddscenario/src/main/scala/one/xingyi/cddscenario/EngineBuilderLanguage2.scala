@@ -26,7 +26,7 @@ object EngineBuilderLanguage2 {
 }
 trait EngineBuilderLanguage2 extends EngineBuilderLanguage {
   protected def scenario[P1, P2, R](p1: P1, p2: P2)(implicit scenarioAggregator: ScenarioAggregator2[(P1, P2), R]) =
-    new ScBuilder[(P1, P2), R, No, No, No, No](getNextId, (p1, p2), EngineComponentData(DefinedInSourceCodeAt.definedInSourceCodeAt(), None), None, None, None, None, "", "")
+    new ScBuilder[(P1, P2), R, No, No, No, No](getNextId, (p1, p2), EngineComponentData(DefinedInSourceCodeAt.definedInSourceCodeAt(4), None), None, None, None, None, "", "")
 
   implicit protected class ScBuilderAddResultOps[P1, P2, R, HasWhen](val builder: ScBuilder[(P1, P2), R, No, HasWhen, No, No]) extends HasScBuilder[(P1, P2), R, No, HasWhen, No, No] {
     def produces(r: R): ScBuilder[(P1, P2), R, Yes, HasWhen, No, No] = builder.withResultPrim(r)

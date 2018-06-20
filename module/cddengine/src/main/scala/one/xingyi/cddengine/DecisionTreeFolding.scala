@@ -9,6 +9,7 @@ case class DecisionTreeFoldingData[P, R](st: DTFolderStrategy, lens: Lens[Decisi
   val newNode = st(fd)
 }
 
+case class TraceDataWithIndex[P,R](traceData: TraceData[P,R], index: String)
 sealed trait TraceData[P, R] {
   def tree: DecisionTree[P, R]
   def s: Scenario[P, R]
