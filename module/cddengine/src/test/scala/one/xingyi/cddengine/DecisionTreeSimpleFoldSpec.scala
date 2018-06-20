@@ -67,7 +67,7 @@ class DecisionTreeSimpleFoldSpec extends CddSpec with DecisionTreeFixture with D
 
   it should "not accept a scenario if it cannot be added because it comes to a different conclusion without a reason in conclusion or scenario" in {
     val DecisionTree(_, issues) = folderHasIssues(List(sabBecomesA, sbbb))
-    issues shouldBe List(CannotAddScenarioBecauseClashes(sbbb, List(sabBecomesA)))
+    issues shouldBe List(CannotAddScenarioBecauseClashes(sbbb, c(sabBecomesA), List(sabBecomesA)))
   }
 
 }

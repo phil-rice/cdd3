@@ -250,7 +250,7 @@ class ScenariosClashSpec extends AbstractDtFolderStrategySpec(ScenariosClash) wi
 
   it should "throw  a decision node  " in {
     //    foldit(c(sbbb), sabBecomesA) shouldBe ""
-    foldClashes(c(sbbb), sabBecomesA) shouldBe CannotAddScenarioBecauseClashes(sabBecomesA, List(sbbb))
+    foldClashes(c(sbbb), sabBecomesA) shouldBe CannotAddScenarioBecauseClashes(sabBecomesA, c(sbbb), List(sbbb))
   }
 
 }

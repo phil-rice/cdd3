@@ -35,9 +35,12 @@ class TraceRenderer {
   def apply[P, R](rendering: WithScenarioData[P, R] => DecisionTreeRendering[String, P, R], prefix: String)(engine: Engine[P, R])(implicit validation: Validation[P, R], renderingConfig: RenderingConfig, printRenderToFile: PrintRenderToFile, urlGenerators: EngineUrlGenerators[P, R]) = {
     val scenarios: List[Scenario[P, R]] = engine.tools.scenarios
     val list = DecisionTreeFolder.trace[P, R](scenarios).reverse
-    val indexPage = list.zipWithIndex.collect { case (TraceData(tree, s, st), i) => s"<a href=${urlGenerators.scenario(s)}>${s.logic.definedInSourceCodeAt} ${st.getClass.getSimpleName} ${s.situation}</a>" }.mkString("<br />\n")
+    val indexPage = list.zipWithIndex.collect {
+      case (AddNodeTraceData(tree, s, st, on, nn), i) => s"<a href=${urlGenerators.scenario(s)}>${s.logic.definedInSourceCodeAt} ${st.getClass.getSimpleName} ${s.situation}</a>"
+      case (IssueTraceData(tree, s, on, e), i) => s"<a href=${urlGenerators.scenario(s)}>${s.logic.definedInSourceCodeAt} ${e.getClass.getSimpleName} ${s.situation}</a>"
+    }.mkString("<br />\n")
     list.zipWithIndex.foreach { case t@(traceData, i) => printRenderToFile(urlGenerators.scenario.trace(prefix, traceData.s)) { pw =>
-      val theseScenarios = scenarios.take(i+1)
+      val theseScenarios = scenarios.take(i + 1)
       val actualRendering = rendering(WithScenarioData(traceData.s, DecisionTree.findWithParentsForScenario(traceData.tree)(traceData.s)))
       pw.write(actualRendering.engine apply Engine1[P, R](traceData.tree, theseScenarios, engine.tools.useCases.map(_.copyWithOnly(theseScenarios))))
     }

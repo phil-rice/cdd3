@@ -54,9 +54,10 @@ object DecisionTreeNode {
 }
 
 sealed trait DecisionIssue[P, R] {
+  def conclusionNode: ConclusionNode[P,R]
   def scenario: Scenario[P, R]
 }
-case class CannotAddScenarioBecauseClashes[P, R](scenario: Scenario[P, R], classesWith: List[Scenario[P, R]]) extends RuntimeException with DecisionIssue[P, R]
+case class CannotAddScenarioBecauseClashes[P, R](scenario: Scenario[P, R], conclusionNode: ConclusionNode[P,R], clashesWith: List[Scenario[P, R]]) extends RuntimeException with DecisionIssue[P, R]
 
 case class DecisionTree[P, R](root: DecisionTreeNode[P, R], issues: List[DecisionIssue[P, R]])
 

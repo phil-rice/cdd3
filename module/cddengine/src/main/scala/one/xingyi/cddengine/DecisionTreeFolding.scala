@@ -5,9 +5,17 @@ import one.xingyi.cddutilities.Lens
 
 import scala.util.{Failure, Success, Try}
 
-case class DecisionTreeFoldingData[P, R](st: DTFolderStrategy, lens: Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]], fd: FolderData[P, R])
+case class DecisionTreeFoldingData[P, R](st: DTFolderStrategy, lens: Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]], fd: FolderData[P, R]) {
+  val newNode = st(fd)
+}
 
-case class TraceData[P, R](tree: DecisionTree[P, R], s: Scenario[P, R], st: DTFolderStrategy)
+sealed trait TraceData[P, R] {
+  def tree: DecisionTree[P, R]
+  def s: Scenario[P, R]
+
+}
+case class AddNodeTraceData[P, R](tree: DecisionTree[P, R], s: Scenario[P, R], st: DTFolderStrategy, oldNode: ConclusionNode[P, R], newNode: DecisionTreeNode[P, R]) extends TraceData[P, R]
+case class IssueTraceData[P, R](tree: DecisionTree[P, R], s: Scenario[P, R], oldNode: ConclusionNode[P, R], issue: DecisionIssue[P, R]) extends TraceData[P, R]
 
 
 object DecisionTreeFolder {
@@ -18,10 +26,9 @@ object DecisionTreeFolder {
     Try(folderStrategyFinder(fd)).map(s => DecisionTreeFoldingData(s, lens, fd))
   }
 
-  def applyStrategy[P, R](tree: DecisionTree[P, R])(decisionTreeFoldingData: DecisionTreeFoldingData[P, R]) = {
-    val newNode = decisionTreeFoldingData.st(decisionTreeFoldingData.fd)
-    DecisionTree(decisionTreeFoldingData.lens.set(tree.root, newNode), tree.issues)
-  }
+  def applyStrategy[P, R](tree: DecisionTree[P, R])(decisionTreeFoldingData: DecisionTreeFoldingData[P, R]) =
+    DecisionTree(decisionTreeFoldingData.lens.set(tree.root, decisionTreeFoldingData.newNode), tree.issues)
+
 
   def recordError[P, R](tree: DecisionTree[P, R]): Throwable => DecisionTree[P, R] = {
     case e: DecisionIssue[_, _] => DecisionTree(tree.root, tree.issues :+ e.asInstanceOf[DecisionIssue[P, R]])
@@ -41,11 +48,18 @@ object DecisionTreeFolder {
     list.zipWithIndex.foldLeft[List[TraceData[P, R]]](List()) {
       case (acc, (s, i)) =>
         val tree = acc.headOption.fold(DecisionTree.empty[P, R])(t => t.tree)
-        val d = findStrategy(tree, s)
-        val st = d.map(_.st).getOrElse(NullOp)
-        val newTree = findNewTree(tree)(d)
-        val v = validation(Engine1(newTree, list.take(i), List()))
-        TraceData(newTree, s, st) :: acc
+        findStrategy(tree, s) match {
+          case Success(d) =>
+            val st: DTFolderStrategy = d.st
+            val newTree: DecisionTree[P, R] = applyStrategy(tree)(d)
+            val v = validation(Engine1(newTree, list.take(i), List()))
+            AddNodeTraceData(newTree, s, st, d.fd.conclusionNode, d.newNode) :: acc
+          case Failure(e: DecisionIssue[_, _]) =>
+            val d = e.asInstanceOf[DecisionIssue[P, R]]
+            IssueTraceData[P, R](recordError(tree)(e), s, d.conclusionNode, d) :: acc
+          case Failure(e) => throw e
+        }
+
     }
 
 
@@ -110,7 +124,7 @@ case object MakeDecisionNodeScenarioAsTrue extends DTFolderStrategy {
 }
 case object ScenariosClash extends DTFolderStrategy {
   override def isDefinedAt[P, R](fd: FolderData[P, R]): Boolean = fd.sAcceptsFailUsingScenarioLogic.size > 0
-  override def apply[P, R](fd: FolderData[P, R]): DecisionTreeNode[P, R] = throw new CannotAddScenarioBecauseClashes(fd.scenario, fd.sAcceptsFailUsingScenarioLogic)
+  override def apply[P, R](fd: FolderData[P, R]): DecisionTreeNode[P, R] = throw new CannotAddScenarioBecauseClashes(fd.scenario,fd.conclusionNode, fd.sAcceptsFailUsingScenarioLogic)
 }
 
 
