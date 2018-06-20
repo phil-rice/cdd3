@@ -18,13 +18,13 @@ object RenderingConfig {
 case class RenderingConfig(rootTraceDirectory: String = "target/cdd/trace", rootPrintDirectory: String = "target/cdd/print")
 
 object DecisionTreeRendering {
-  def simple[P: ShortPrint, R: ShortPrint](implicit urlGenerator: EngineUrlGenerators[P,R]): DecisionTreeRendering[JsonObject, P, R] = new SimpleDecisionTreeRendering[P, R]
-  def withScenario[P: ShortPrint, R: ShortPrint](data: WithScenarioData[P, R])(implicit urlGenerator: EngineUrlGenerators[P,R]): DecisionTreeRendering[JsonObject, P, R] = new WithScenarioRendering[P, R](data)
-//  def trace = new TraceRenderer
-//  def print = new PrintPagesRenderer
+  def simple[P: ShortPrint, R: ShortPrint](implicit urlGenerator: EngineUrlGenerators[P, R]): DecisionTreeRendering[JsonObject, P, R] = new SimpleDecisionTreeRendering[P, R]
+  def withScenario[P: ShortPrint, R: ShortPrint](data: WithScenarioData[P, R])(implicit urlGenerator: EngineUrlGenerators[P, R]): DecisionTreeRendering[JsonObject, P, R] = new WithScenarioRendering[P, R](data)
+  //  def trace = new TraceRenderer
+  //  def print = new PrintPagesRenderer
 }
 
-object PrintRenderToFile{
+object PrintRenderToFile {
   implicit val default = new PrintRenderToFile
 }
 class PrintRenderToFile {
@@ -32,15 +32,16 @@ class PrintRenderToFile {
 }
 
 class TraceRenderer {
-  def apply[P, R](rendering: WithScenarioData[P, R] => DecisionTreeRendering[String, P, R], prefix: String)(engine: Engine[P, R])(implicit validation: Validation[P,R], renderingConfig: RenderingConfig, printRenderToFile: PrintRenderToFile, urlGenerators: EngineUrlGenerators[P, R]) = {
+  def apply[P, R](rendering: WithScenarioData[P, R] => DecisionTreeRendering[String, P, R], prefix: String)(engine: Engine[P, R])(implicit validation: Validation[P, R], renderingConfig: RenderingConfig, printRenderToFile: PrintRenderToFile, urlGenerators: EngineUrlGenerators[P, R]) = {
     val scenarios: List[Scenario[P, R]] = engine.tools.scenarios
-    val list = DecisionTreeFolder.trace[P, R](scenarios)
-    list.zipWithIndex.foreach { case t@(traceData, i) => printRenderToFile(urlGenerators.scenario.trace(prefix, traceData.s)) { pw =>
-      val actualRendering = rendering(WithScenarioData(traceData.s, DecisionTree.findWithParentsForScenario(traceData.tree)(traceData.s)))
-      pw.write(actualRendering.engine apply Engine1[P, R](traceData.tree, scenarios.take(i), engine.tools.useCases))
-    }
-    }
+    val list = DecisionTreeFolder.trace[P, R](scenarios).reverse
     val indexPage = list.zipWithIndex.collect { case (TraceData(tree, s, st), i) => s"<a href=${urlGenerators.scenario(s)}>${s.logic.definedInSourceCodeAt} ${st.getClass.getSimpleName} ${s.situation}</a>" }.mkString("<br />\n")
+    list.zipWithIndex.foreach { case t@(traceData, i) => printRenderToFile(urlGenerators.scenario.trace(prefix, traceData.s)) { pw =>
+      val theseScenarios = scenarios.take(i+1)
+      val actualRendering = rendering(WithScenarioData(traceData.s, DecisionTree.findWithParentsForScenario(traceData.tree)(traceData.s)))
+      pw.write(actualRendering.engine apply Engine1[P, R](traceData.tree, theseScenarios, engine.tools.useCases.map(_.copyWithOnly(theseScenarios))))
+    }
+    }
     printRenderToFile(urlGenerators.engine.trace(prefix, engine))(_.print(indexPage))
   }
 }
@@ -123,7 +124,7 @@ object NodeEffect {
   def apply[P, R](withScenarioData: WithScenarioData[P, R]): DecisionTreeNode[P, R] => NodeEffect = goesThroughNode[P, R] orElse wouldGoThroughNode orElse failsDecisionNode orDefault NotApplicable apply withScenarioData
 }
 
-class WithScenarioRendering[P, R](withScenarioData: WithScenarioData[P, R])(implicit urlGenerator: EngineUrlGenerators[P,R]) extends SimpleDecisionTreeRendering[P, R] {
+class WithScenarioRendering[P, R](withScenarioData: WithScenarioData[P, R])(implicit urlGenerator: EngineUrlGenerators[P, R]) extends SimpleDecisionTreeRendering[P, R] {
   implicit class WithSituationJsonObjectOps[From <: DecisionTreeNode[P, R]](j: From => JsonObject) {
     def addNodeEffect: From => JsonObject = { from => j(from) |+| ("node" -> NodeEffect(withScenarioData)(from).json) }
 
