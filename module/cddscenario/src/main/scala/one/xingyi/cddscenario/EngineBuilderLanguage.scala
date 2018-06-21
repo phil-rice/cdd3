@@ -2,7 +2,7 @@
 package one.xingyi.cddscenario
 
 import one.xingyi.cddscenario.EngineComponentData._
-import one.xingyi.cddutilities.{IdMaker, Lens}
+import one.xingyi.cddutilities.{CodeHolder, IdMaker, Lens, Strings}
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros
@@ -70,13 +70,15 @@ trait HasScBuilder[P, R, HasResult, HasWhen, HasCode, HasBecause] {
 }
 
 object EngineBuilderLanguage {
+
+
   def withBecausePrim[P, R, HasResult](builder: ScBuilder[P, R, HasResult, No, No, No], because: PartialFunction[P, R], ifStringFromMacro: String, thenStringFromMacro: String) = {
     import builder._
-    new ScBuilder[P, R, HasResult, No, No, Yes](id, situation, data, optResult, optWhen, optCode, Some(because), ifStringFromMacro, thenStringFromMacro)
+    new ScBuilder[P, R, HasResult, No, No, Yes](id, situation, data, optResult, optWhen, optCode, Some(because), CodeHolder.prettyDescription(ifStringFromMacro), thenStringFromMacro)
   }
   def withWhenPrim[P, R, HasResult, HasCode](builder: ScBuilder[P, R, HasResult, No, HasCode, No], when: P => Boolean, ifStringFromMacro: String): ScBuilder[P, R, HasResult, Yes, HasCode, No] = {
     import builder._
-    new ScBuilder[P, R, HasResult, Yes, HasCode, No](id, situation, data, optResult, Some(when), optCode, optBecause, ifStringFromMacro, thenString)
+    new ScBuilder[P, R, HasResult, Yes, HasCode, No](id, situation, data, optResult, Some(when), optCode, optBecause, CodeHolder.prettyDescription(ifStringFromMacro), thenString)
   }
 
 }

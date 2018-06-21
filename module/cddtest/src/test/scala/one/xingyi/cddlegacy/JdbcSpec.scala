@@ -9,6 +9,7 @@ import org.apache.commons.dbcp2.BasicDataSource
 import org.scalatest.BeforeAndAfterAll
 import one.xingyi.cddutilities.ClosableLanguage._
 
+import scala.collection.immutable
 import scala.language.higherKinds
 
 class AbstractJdbcSpec[M[_] : ClosableM] extends CddSpec with BeforeAndAfterAll with Jdbc {
@@ -38,7 +39,7 @@ class AbstractJdbcSpec[M[_] : ClosableM] extends CddSpec with BeforeAndAfterAll 
 
 
   it should
-    "drop create  tables" in {
+  "drop create  tables" in {
     setup(1)
     val x = getValue("select * from testsource;")(toLegacyData) apply ds
     x shouldBe LegacyData(1, "sit1", "result1")
@@ -69,10 +70,51 @@ class AbstractJdbcSpec[M[_] : ClosableM] extends CddSpec with BeforeAndAfterAll 
   val phone = OneToManyEntity("Phone", "Ph", IntField("aid"), IntField("personid"), List(StringField("phoneNo")), List())
   val main = MainEntity("Person", "P", IntField("pid"), List(StringField("name")), List(address, phone))
 
+  case class Address(add: String)
+  case class Phone(phoneNo: String)
+  case class Person(name: String, address: List[Address], phones: List[Phone])
+
+  implicit class MapOfListsPimper[K, V](map: Map[K, List[V]]) {
+    def addToList(kv: (K, V)): Map[K, List[V]] = kv match {case (k, v) => map.get(k).fold(map + (k -> List[V](v)))(list => map + (k -> (list :+ v)))}
+  }
+
+  def toMap[X](list: List[List[AnyRef]])(fn: List[AnyRef] => X): Map[Any, List[X]] =
+    list.foldLeft[Map[Any, List[X]]](Map()) { case (acc, key :: _ :: values) => acc addToList key -> fn(values) }
+
+  val maker: Map[OrmEntity, List[List[AnyRef]]] => List[Person] = { map =>
+    val aList = toMap(map(address))(list => Address(list(0).toString))
+    val phoneList = toMap(map(phone))(list => Phone(list(0).toString))
+    val result: List[Person] = map(main).map { case id :: name :: _ => Person(name.toString, aList.getOrElse(id, Nil), phoneList.getOrElse(id, Nil)) }
+    result
+  }
+
+
   it should "do stuff" in {
-    OrmStrategies.dropTempTables.walk(main).map(_._2).foreach(println)
-    OrmStrategies.createTempTables(BatchDetails(1000, 3)).walk(main).map(_._2).foreach(println)
-    OrmStrategies.drainTempTables.walk(main).map(_._2).foreach(println)
+    def printIt = { s: Any => println(s) }
+    OrmStrategies.dropTables.map(printIt).walk(main)
+    OrmStrategies.createTables.map(printIt).walk(main)
+    OrmStrategies.dropTempTables.map(printIt).walk(main)
+    OrmStrategies.createTempTables(BatchDetails(1000, 3)).map(printIt).walk(main) //
+    OrmStrategies.drainTempTables.map(printIt) walk (main)
+
+    def execute = { s: String => executeSql(s) apply ds }
+    def query = { s: String => getList(s) { rs: ResultSet => (1 to rs.getMetaData.getColumnCount).toList.map(rs.getObject) } apply ds }
+
+    OrmStrategies.dropTables.map(execute).walk(main)
+    OrmStrategies.createTables.map(execute).walk(main)
+    executeSql(s"""insert into  Person (pid, name ) values (1, 'Phil');""") apply ds
+    executeSql(s"""insert into  Address (aid, personid, add ) values (1, 1, 'Phils first address');""") apply ds
+    executeSql(s"""insert into  Address (aid, personid, add ) values (2, 1, 'Phils second address');""") apply ds
+    executeSql(s"""insert into  Person (pid, name ) values (2, 'Bob');""") apply ds
+    executeSql(s"""insert into  Person (pid, name ) values (3, 'Jill');""") apply ds
+    executeSql(s"""insert into  Address (aid, personid, add ) values (3, 3, 'Jills first address');""") apply ds
+    OrmStrategies.dropTempTables.map(execute).walk(main)
+    OrmStrategies.createTempTables(BatchDetails(2, 0)).map(execute).walk(main)
+    OrmStrategies.drainTempTables.map(query).map(printIt).walk(main)
+    val x: Map[OrmEntity, List[List[AnyRef]]] = OrmStrategies.drainTempTables.map(query).walk(main).toMap
+    val y: Seq[Any] = maker(x)
+    y.foreach(println)
+
   }
 
 }

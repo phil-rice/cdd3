@@ -68,8 +68,6 @@ lazy val junitSettings = publishSettings ++ Seq(
 lazy val apacheDbcp2Settings = publishSettings ++ Seq(
   libraryDependencies += "org.apache.commons" % "commons-dbcp2" % "2.3.0",
   libraryDependencies += "com.h2database" % "h2" % "1.4.197"
-
-
 )
 
 lazy val scalatestSeetings = publishSettings ++ Seq(

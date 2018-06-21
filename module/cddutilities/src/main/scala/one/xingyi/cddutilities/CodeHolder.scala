@@ -20,14 +20,14 @@ object CodeHolder {
         Some("{" + s.substring(firstIndex, secondIndex).trim + "}")
     }
   }
-//  def prettyDescription(description: String) = description match {
-  //    case d if description.contains(
-  //      "SerialVersionUID(value = 0) final <synthetic> class $anonfun extends scala.runtime.AbstractPartialFunction[") => CodeHolder.partialFnToStringToNiceToString(d).getOrElse(d)
-  //    case d if description.startsWith("((") && description.endsWith("})") && description.contains("match") => {
-  //      Strings.from("case")(d).map(Strings.removeLast(2)).map(_.trim).getOrElse(d)
-  //    }
-  //    case d => d
-  //  }
+  def prettyDescription(description: String) = description match {
+      case d if description.contains(
+        "SerialVersionUID(value = 0) final <synthetic> class $anonfun extends scala.runtime.AbstractPartialFunction[") => CodeHolder.partialFnToStringToNiceToString(d).getOrElse(d)
+      case d if description.startsWith("((") && description.endsWith("})") && description.contains("match") => {
+        Strings.from("case")(d).map(Strings.removeLast(2)).map(_.trim).getOrElse(d)
+      }
+      case d => d
+    }
 
 }
 
