@@ -3,6 +3,7 @@ package one.xingyi.cddlegacy
 import java.sql.ResultSet
 
 import javax.sql.DataSource
+import one.xingyi.cddorm._
 import one.xingyi.cddutilities.{CddSpec, ClosableM, Jdbc, SimpleClosable}
 import org.apache.commons.dbcp2.BasicDataSource
 import org.scalatest.BeforeAndAfterAll
@@ -37,7 +38,7 @@ class AbstractJdbcSpec[M[_] : ClosableM] extends CddSpec with BeforeAndAfterAll 
 
 
   it should
-  "drop create  tables" in {
+    "drop create  tables" in {
     setup(1)
     val x = getValue("select * from testsource;")(toLegacyData) apply ds
     x shouldBe LegacyData(1, "sit1", "result1")
@@ -50,10 +51,28 @@ class AbstractJdbcSpec[M[_] : ClosableM] extends CddSpec with BeforeAndAfterAll 
     val x = process[M, LegacyData[String, String], LegacyResult](5)("select * from testsource", toLegacyData)(s"insert into testresult values (?,?)", lr => List(lr.id.toString, lr.failure.orNull)) _
     x(fn _)(ds).close()
     getValue("select count(*) from testresult")(rs => rs.getInt(1)) apply (ds) shouldBe 7
-    val list = getList("select * from testresult")(toLegacyResult)apply (ds)
-    list shouldBe List(LegacyResult(1,None), LegacyResult(2,None), LegacyResult(3,Some("id: 3")), LegacyResult(4,Some("id: 4")), LegacyResult(5,Some("id: 5")), LegacyResult(6,Some("id: 6")), LegacyResult(7,Some("id: 7")))
+    val list = getList("select * from testresult")(toLegacyResult) apply (ds)
+    list shouldBe List(LegacyResult(1, None), LegacyResult(2, None), LegacyResult(3, Some("id: 3")), LegacyResult(4, Some("id: 4")), LegacyResult(5, Some("id: 5")), LegacyResult(6, Some("id: 6")), LegacyResult(7, Some("id: 7")))
+  }
 
+  it should "create temporary tables" in {
+    setup(7)
+    executeSql("create temporary table testtemp as select * from testsource") apply ds
+    val x = getList("select * from testsource;")(toLegacyData) apply ds
+    x.foreach(println)
 
+  }
+
+  behavior of "FastOrm"
+
+  val address = OneToManyEntity("Address", "A", IntField("aid"), IntField("personid"), List(StringField("add")), List())
+  val phone = OneToManyEntity("Phone", "Ph", IntField("aid"), IntField("personid"), List(StringField("phoneNo")), List())
+  val main = MainEntity("Person", "P", IntField("pid"), List(StringField("name")), List(address, phone))
+
+  it should "do stuff" in {
+    OrmStrategies.dropTempTables.walk(main).map(_._2).foreach(println)
+    OrmStrategies.createTempTables(BatchDetails(1000, 3)).walk(main).map(_._2).foreach(println)
+    OrmStrategies.drainTempTables.walk(main).map(_._2).foreach(println)
   }
 
 }
