@@ -2,8 +2,9 @@
 package one.xingyi.cddengine
 
 import one.xingyi.cddscenario.{Scenario, ScenarioLogic}
+import one.xingyi.cddutilities.functions.Lens
 import one.xingyi.cddutilities.language.Arrows._
-import one.xingyi.cddutilities.{DefinedInSourceCodeAt, IsDefinedInSourceCodeAt, Lens}
+import one.xingyi.cddutilities.reflection.{DefinedInSourceCodeAt, IsDefinedInSourceCodeAt}
 
 
 sealed trait DecisionTreeNode[P, R] {

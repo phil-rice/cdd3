@@ -1,6 +1,6 @@
 package one.xingyi.cddlegacy
-import one.xingyi.cddorm.AbstractFastOrmSpec
-import one.xingyi.cddutilities.{DatabaseSourceFixture, SimpleClosable}
+import one.xingyi.cddutilities.functions.SimpleClosable
+import one.xingyi.cddutilities.jdbc.{AbstractFastOrmSpec, DatabaseSourceFixture}
 import org.apache.commons.dbcp2.BasicDataSource
 
 trait Apache extends DatabaseSourceFixture[BasicDataSource] {

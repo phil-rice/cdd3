@@ -112,10 +112,6 @@ val cddapachejdbc = (project in file("module/cddapachejdbc")).
   dependsOn(cddutilities % "test->test;compile->compile").
   settings(apacheDbcp2Settings)
 
-val cddorm= (project in file("module/cddorm")).
-  dependsOn(cddutilities % "test->test;compile->compile").
-  settings(publishSettings)
-
 val cddexamples = (project in file("module/cddexamples")).
   dependsOn(cddutilities % "test->test;compile->compile").
   dependsOn(cddengine % "test->test;compile->compile").
@@ -132,7 +128,6 @@ val cddtest = (project in file("module/cddtest")).
   dependsOn(cddscenario % "test->test;compile->compile").
   dependsOn(cddjson4s % "test->test;compile->compile").
   dependsOn(cddlegacy % "test->test;compile->compile").
-  dependsOn(cddorm % "test->test;compile->compile").
   dependsOn(cddapachejdbc % "test->test;compile->compile").
   settings(publishSettings)
 

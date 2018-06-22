@@ -2,6 +2,7 @@
 package one.xingyi.cddengine
 import one.xingyi.cddscenario.Scenario
 import one.xingyi.cddutilities._
+import one.xingyi.cddutilities.strings.ShortPrint
 
 import scala.util.Try
 

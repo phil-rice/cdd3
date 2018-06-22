@@ -2,7 +2,8 @@
 package one.xingyi.cddscenario
 
 import one.xingyi.cddscenario.EngineComponentData._
-import one.xingyi.cddutilities.{CodeHolder, IdMaker, Lens, Strings}
+import one.xingyi.cddutilities.functions.{CodeHolder, Lens}
+import one.xingyi.cddutilities.IdMaker
 
 import scala.annotation.implicitNotFound
 import scala.language.experimental.macros

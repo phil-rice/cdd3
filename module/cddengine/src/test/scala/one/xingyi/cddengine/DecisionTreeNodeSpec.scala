@@ -1,5 +1,6 @@
 package one.xingyi.cddengine
-import one.xingyi.cddutilities.{CddSpec, IsDefinedInSourceCodeAt}
+import one.xingyi.cddutilities.CddSpec
+import one.xingyi.cddutilities.reflection.IsDefinedInSourceCodeAt
 
 class DecisionTreeNodeSpec extends CddSpec with DecisionTreeFixture{
 

@@ -3,7 +3,7 @@ package one.xingyi.cddutilities.language
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import one.xingyi.cddutilities.ClosableFunction1
+import one.xingyi.cddutilities.functions.ClosableFunction1
 
 import scala.util.Try
 object AnyLanguage extends AnyLanguage

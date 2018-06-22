@@ -2,12 +2,14 @@
 package one.xingyi.cddutilities
 
 
+import one.xingyi.cddutilities.functions.CodeHolder
+
 import scala.language.experimental.macros
 import scala.language.implicitConversions
 
 class CodeHolderSpec extends CddSpec {
 
-  import CodeHolder._
+  import one.xingyi.cddutilities.functions.CodeHolder._
 
   val horribleToString =
     """{

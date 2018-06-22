@@ -3,8 +3,9 @@ package one.xingyi.cddlegacy
 import java.sql.ResultSet
 
 import javax.sql.DataSource
-import one.xingyi.cddutilities.ClosableLanguage._
-import one.xingyi.cddutilities.{ClosableM, DatabaseSourceFixture, Jdbc}
+import one.xingyi.cddutilities.functions.ClosableLanguage._
+import one.xingyi.cddutilities.functions.ClosableM
+import one.xingyi.cddutilities.jdbc.{DatabaseSourceFixture, Jdbc}
 
 import scala.language.higherKinds
 
