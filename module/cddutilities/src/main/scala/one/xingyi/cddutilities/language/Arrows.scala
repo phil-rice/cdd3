@@ -42,6 +42,10 @@ trait AnyLanguage {
       if (a.get != 0) fn
     }
   }
+
+  implicit class ListOps[X](s: List[X]){
+    def asString(fn: X => String, separator: String = ",") = s.map(fn).mkString(separator)
+  }
 }
 
 
