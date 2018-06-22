@@ -9,7 +9,7 @@ import one.xingyi.cddutilities.language.FunctionLanguage._
 
 import scala.language.{higherKinds, postfixOps}
 
-
+object Jdbc extends Jdbc
 trait Jdbc {
   import ClosableLanguage._
   def connection[M[_] : ClosableM] = { d: DataSource => d.getConnection.liftClosable }

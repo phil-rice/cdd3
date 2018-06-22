@@ -1,4 +1,9 @@
 package one.xingyi.cddorm
+import java.sql.ResultSet
+
+import javax.sql.DataSource
+import one.xingyi.cddutilities.ClosableM
+
 import scala.language.higherKinds
 
 trait OrmEntity {
@@ -42,6 +47,43 @@ trait SqlOps {
   def selectFields(e: OrmEntity) = (e.primaryKeyField :: e.dataFields).map(f => e.alias + "." + f.name).mkString(", ")
 }
 
+object Streams extends Streams
+trait Streams {
+  def unfold[S, A](z: S)(f: S => Option[(A, S)]): Stream[A] = f(z) match {
+    case Some((a, s)) => a #:: unfold(s)(f)
+    case None => Stream.empty[A]
+  }
+  def unfoldList[S, A](z: S)(f: S => Option[(List[A], S)]): Stream[A] = f(z) match {
+    case Some((a, s)) => a.toStream #::: unfoldList(s)(f)
+    case None => Stream.empty[A]
+  }
+  def unfoldIndexedList[S, A](n: Int, z: S)(f: (Int, S) => Option[(List[A], S)]): Stream[A] = {f(n, z) match {
+    case Some((a, s)) => a.toStream #::: unfoldIndexedList[S, A](n + 1, s)(f)
+    case None => Stream.empty[A]
+  }}
+
+}
+trait FastReader[T] extends (MainEntity => Stream[T])
+trait OrmMaker[T] extends (Map[OrmEntity, List[List[AnyRef]]] => List[T])
+
+//TODO Clean this. Remove M and sqlops and just pass in some functions that do it...
+class FastReaderImpl[M[_] : ClosableM, T](ds: DataSource)(implicit ormMaker: OrmMaker[T], sqlOps: SqlOps) extends FastReader[T] {
+  import one.xingyi.cddutilities.Jdbc._
+
+  def execute = { s: String => executeSql(s) apply ds }
+  def query = { s: String => getList(s) { rs: ResultSet => (1 to rs.getMetaData.getColumnCount).toList.map(rs.getObject) } apply ds }
+
+
+  def makeBatch(n: Int, main: MainEntity): Option[( List[T],MainEntity)] = {
+    OrmStrategies.dropTempTables.map(execute).walk(main)
+    OrmStrategies.createTempTables(BatchDetails(2, n)).map(execute).walk(main)
+    val data: Map[OrmEntity, List[List[AnyRef]]] = OrmStrategies.drainTempTables.map(query).walk(main).toMap
+    val list = ormMaker(data)
+    if (list.size == 0) None else Some((list, main))
+  }
+  override def apply(mainEntity: MainEntity): Stream[T] = Streams.unfoldIndexedList(0, mainEntity)(makeBatch)
+}
+
 object SqlOps {
   implicit object DefaultSqlOps extends SqlOps
 }
@@ -58,7 +100,7 @@ trait OrmStrategies {
 
 case class EntityStrategy[X](mainEntity: OrmEntity => X, oneToManyEntity: OrmEntity => OneToManyEntity => X) {
   def map[T](fn: X => T) = EntityStrategy(mainEntity andThen fn, p => c => fn(oneToManyEntity(p)(c)))
-//  def map2[T](fn: OrmEntity => X => T) = EntityStrategy(mainEntity andThen {x:X => fn(mainEntity)(x)}, p => c => fn(c)(oneToManyEntity(p)(c)))
+  //  def map2[T](fn: OrmEntity => X => T) = EntityStrategy(mainEntity andThen {x:X => fn(mainEntity)(x)}, p => c => fn(c)(oneToManyEntity(p)(c)))
   def childEntity(parentEntity: OrmEntity): PartialFunction[ChildEntity, X] = {case e: OneToManyEntity => oneToManyEntity(parentEntity)(e)}
   def walk(e: MainEntity): List[(OrmEntity, X)] = (e, mainEntity(e)) :: e.children.flatMap(walkChildren(e))
   def walkChildren(parent: OrmEntity)(child: ChildEntity): List[(OrmEntity, X)] = (child, childEntity(parent)(child)) :: child.children.flatMap(walkChildren(child))

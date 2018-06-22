@@ -81,7 +81,7 @@ class AbstractJdbcSpec[M[_] : ClosableM] extends CddSpec with BeforeAndAfterAll 
   def toMap[X](list: List[List[AnyRef]])(fn: List[AnyRef] => X): Map[Any, List[X]] =
     list.foldLeft[Map[Any, List[X]]](Map()) { case (acc, key :: _ :: values) => acc addToList key -> fn(values) }
 
-  val maker: Map[OrmEntity, List[List[AnyRef]]] => List[Person] = { map =>
+  implicit val maker: OrmMaker[Person] = { map =>
     val aList = toMap(map(address))(list => Address(list(0).toString))
     val phoneList = toMap(map(phone))(list => Phone(list(0).toString))
     val result: List[Person] = map(main).map { case id :: name :: _ => Person(name.toString, aList.getOrElse(id, Nil), phoneList.getOrElse(id, Nil)) }
@@ -114,6 +114,10 @@ class AbstractJdbcSpec[M[_] : ClosableM] extends CddSpec with BeforeAndAfterAll 
     val x: Map[OrmEntity, List[List[AnyRef]]] = OrmStrategies.drainTempTables.map(query).walk(main).toMap
     val y: Seq[Any] = maker(x)
     y.foreach(println)
+
+
+    val reader = new FastReaderImpl[M, Person](ds)
+    reader(main).foreach(println)
 
   }
 
