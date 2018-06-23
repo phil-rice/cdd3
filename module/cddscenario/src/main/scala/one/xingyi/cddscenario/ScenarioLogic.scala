@@ -43,8 +43,10 @@ case class BecauseScenarioLogic[P, R](fn: PartialFunction[P, R], definedInSource
   override def hasCondition: Boolean = true
 }
 
+ class CannotExecuteException (msg: String)extends RuntimeException(msg)
+
 case class WhenResultScenarioLogic[P, R](when: P => Boolean, result: R, definedInSourceCodeAt: SingleDefinedInSourceCodeAt, ifString: String)(implicit shortPrintP: ShortPrint[P], shortPrintR: ShortPrint[R]) extends SingleScenarioLogic[P, R] {
-  override val fn: PartialFunction[P, R] = {case p if when(p) => result}
+  override val fn: PartialFunction[P, R] = {case p if when(p) => result }
   override def hasCondition: Boolean = true
 }
 

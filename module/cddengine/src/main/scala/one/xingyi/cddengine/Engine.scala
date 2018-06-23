@@ -24,6 +24,7 @@ trait EngineTools[P, R] {
   def useCases: List[UseCase[P, R]]
   def scenarios: List[Scenario[P, R]]
   def decisionTree: DecisionTree[P, R]
+  def issues: List[DecisionIssue[P,R]]
   def trace[J: JsonWriter](prefix: String)(implicit config: RenderingConfig, validation: Validation[P, R], template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit
   def printPages[J: JsonWriter](prefix: String)(implicit config: RenderingConfig, template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit
   def test(name: String): CddTest
@@ -42,6 +43,7 @@ class SimpleEngineTools[P, R](engine: Engine1[P, R]) extends EngineTools[P, R] {
   override def printPages[J: JsonWriter](prefix: String)(implicit renderingConfig: RenderingConfig, template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit =
     (new PrintPagesRenderer).apply[P, R](printPrinter[J], tracePrinter[J])(prefix, engine)
   def test(name: String): CddTest = new SimpleTestMaker[P, R](name, engine).apply
+  override def issues: List[DecisionIssue[P, R]] = engine.decisionTree.issues
 }
 
 

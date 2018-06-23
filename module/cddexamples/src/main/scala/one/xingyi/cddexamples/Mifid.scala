@@ -115,6 +115,9 @@ object Trace extends App {
 
   implicit def v[P, R] = new SimpleValidation[P, R]
 
-  new MifidDecisionMaker().categoriser.tools.trace("mifid")
+  private val categoriser: Engine[EntityDetails, MifidConclusion] = new MifidDecisionMaker().categoriser
+  categoriser.tools.trace("mifid")
+  println("Issues")
+  categoriser.tools.issues.foreach(println)
 }
 

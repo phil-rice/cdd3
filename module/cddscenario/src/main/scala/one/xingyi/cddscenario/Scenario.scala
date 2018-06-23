@@ -15,7 +15,9 @@ object Scenario {
   implicit def shortPrintFor[P: ShortPrint, R: ShortPrint]: ShortPrint[Scenario[P, R]] = s => s"${s.data.definedInSourceCodeAt} ${ShortPrint(s.situation)} => ${s.result.fold("")(ShortPrint.apply)}"
 }
 case class Scenario[P, R](situation: P, result: Option[R], logic: SingleScenarioLogic[P, R], assertions: List[ScenarioAssertion[P, R]], data: EngineComponentData) {
-  def acceptResult(p: P, r: R) = result.fold(true)(_ == r) && assertions.forall(_.isTrue(p, r))
+  require(logic.fn.isDefinedAt(situation), s"The situation defined at ${data.definedInSourceCodeAt} $this does not meet it's own definition")
+  require(acceptResult(situation, logic.fn(situation)))
+  def acceptResult(p: P, r: R) = logic.fn.isDefinedAt(situation) && result.fold(true)(_ == r) && assertions.forall(_.isTrue(p, r))
 }
 
 
