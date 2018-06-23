@@ -27,7 +27,7 @@ object BusinessType {
   val other = BusinessType("other")
 }
 case class BusinessType(s: String) extends AnyVal
-case class Money(i: Int) extends AnyVal {
+case class Money(i: Long) extends AnyVal {
   def >=(other: Money): Boolean = i >= other.i
 }
 
@@ -45,22 +45,23 @@ case class EntityDetails(entity: Entity)(implicit config: Config) {
   def highTurnoverSheet = entity.netTurnover >= config.netTurnoverThreshold
   def highOwnFunds = entity.ownFunds >= config.ownFundsThreshold
   val countOfHighMoneyMakers = List(bigBalanceSheet, highTurnoverSheet, highOwnFunds).count(_ == true)
+  override def toString: String = s"EntityDetais($entity, ($bigBalanceSheet, $highTurnoverSheet, $highOwnFunds), count $countOfHighMoneyMakers)"
 }
 
 
 class MifidDecisionMaker {
   type MifidUC = UseCase1[EntityDetails, MifidConclusion]
-
+import one.xingyi.cddutilities.language.AnyLanguage._
   implicit class BusinessTypeOps(b: BusinessType)(implicit config: Config) {
     case class name(name: String) {
-      def lotsOfMoney = EntityDetails(Entity(name, b, balanceSheet = Money(1000000000), netTurnover = Money(100000000), ownFunds = Money(100000)))
-      def highBalanceSheet = EntityDetails(Entity(name, b, balanceSheet = Money(1000000000), netTurnover = Money(0), ownFunds = Money(0)))
-      def highNetTurnover = EntityDetails(Entity(name, b, balanceSheet = Money(0), netTurnover = Money(100000000), ownFunds = Money(0)))
+      def lotsOfMoney = EntityDetails(Entity(name, b, balanceSheet = Money(1000000000), netTurnover = Money(1000000000), ownFunds = Money(1000000000)))
+      def highBalanceSheet = EntityDetails(Entity(name, b, balanceSheet = Money(1000000000), netTurnover = Money(0), ownFunds = Money(0))) sideeffect(s => println(s"High balance sheet $s"))
+      def highNetTurnover = EntityDetails(Entity(name, b, balanceSheet = Money(0), netTurnover = Money(1000000000), ownFunds = Money(0)))
       def highOwnFunds = EntityDetails(Entity(name, b, balanceSheet = Money(0), netTurnover = Money(0), ownFunds = Money(100000)))
-      def highBSAndOwnFunds = EntityDetails(Entity(name, b, balanceSheet = Money(1000000000), netTurnover = Money(0), ownFunds = Money(100000)))
-      def highTurnoverAndBS = EntityDetails(Entity(name, b, balanceSheet = Money(0), netTurnover = Money(100000000), ownFunds = Money(100000)))
+      def highBSAndOwnFunds = EntityDetails(Entity(name, b, balanceSheet = Money(1000000000), netTurnover = Money(0), ownFunds = Money(1000000000)))
+      def highTurnoverAndBS = EntityDetails(Entity(name, b, balanceSheet = Money(0), netTurnover = Money(1000000000), ownFunds = Money(1000000000)))
       def totallyBrokeAndInviolationofGAP7fold = EntityDetails(Entity(name, b, balanceSheet = Money(0), netTurnover = Money(0), ownFunds = Money(0)))
-      def mainBuisnessIsInvestment = EntityDetails(Entity(name, b, Money(0), Money(0), Money(0)))
+      def mainBuisnessIsInvestment = EntityDetails(Entity(name, b, Money(0), Money(0), Money(0), mainBusinessIsFinancialTransactions = true))
     }
   }
   import BusinessType._
@@ -100,7 +101,7 @@ class MifidDecisionMaker {
   val someOtherComplicatedThing = new MifidUC("some other complicated rules") {
   }
 
-  val categoriser = Engine(ucAuthorisedOrRegulatedEntites or ucLargeUndertaking or ucNationalAndRegionalBodies or ucInstituionalInvestorsWhoseMainActivityIsToInves)
+  val categoriser = Engine(ucLargeUndertaking or ucAuthorisedOrRegulatedEntites  or ucNationalAndRegionalBodies or ucInstituionalInvestorsWhoseMainActivityIsToInves)
   val categoriser2 = Engine(ucAuthorisedOrRegulatedEntites or ucLargeUndertaking or ucNationalAndRegionalBodies)
   val categoriser3 = Engine(ucAuthorisedOrRegulatedEntites or ucLargeUndertaking or ucNationalAndRegionalBodies or someOtherComplicatedThing)
 

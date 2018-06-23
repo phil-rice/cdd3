@@ -1,4 +1,5 @@
 package one.xingyi.cddexamples.qAndA
+import java.util.ResourceBundle
 import java.util.concurrent.Executor
 
 import com.sun.net.httpserver.HttpExchange
@@ -77,11 +78,17 @@ trait BlackboardItem[B, T] extends Blackboard[T] {
   def lensAndFindLens(name: List[String]): Lens[B, String] = lens andThen findLens(name)
   def validateFn: T => List[ValidateProblem]
   def validate(b: B): immutable.Seq[ValidateProblem] = validateFn(lens(b))
-  def toJson(b: B): JsonValue
+  def toJson(prefix: List[String], b: B)(implicit bundle: ResourceBundle): JsonValue
 }
 case class SimpleBlackboardItem[B, T](name: String, lens: Lens[B, T], validateFn: T => List[ValidateProblem])(implicit stringLens: Lens[T, String]) extends BlackboardItem[B, T] {
   override def children: List[BlackboardItem[T, _]] = List()
-  override def toJson(b: B): JsonValue = using(lens(b)) { t => JsonObject("name" -> name, "value" -> stringLens(t), "validation" -> JsonList(validateFn(t).map(v => JsonString(v.s)))) }
+  override def toJson(prefix: List[String], b: B)(implicit bundle: ResourceBundle): JsonValue = using(lens(b)) { t =>
+    JsonObject("leaf" -> JsonObject(
+      "id" -> (prefix :+ name).mkString("."),
+      "name" -> bundle.getString((prefix :+ name).mkString(".")),
+      "value" -> stringLens(t),
+      "validation" -> JsonList(validateFn(t).map(v => JsonString(v.s)))))
+  }
   override def findLens(name: List[String]): Lens[T, String] = if (name.isEmpty) stringLens else throw new RuntimeException(s"Cannot process name [${name}]")
 }
 
@@ -89,7 +96,7 @@ case class NestedBlackboard[B, T](blackboard: Blackboard[T], lens: Lens[B, T]) e
   override def name: String = blackboard.name
   override def children: List[BlackboardItem[T, _]] = blackboard.children
   override def validateFn: T => List[ValidateProblem] = t => children.flatMap(_.validate(t))
-  override def toJson(b: B): JsonValue = using(lens(b)) { t => JsonObject(name -> JsonList(children.map(_.toJson(t)))) }
+  override def toJson(prefix: List[String], b: B)(implicit bundle: ResourceBundle): JsonValue = using(lens(b)) { t => JsonObject("name" -> bundle.getString((("title" :: prefix) :+ name).mkString(".")), "children" -> JsonList(children.map(_.toJson(prefix :+ name, t)))) }
   override def toString: String = s"Blackboard(${blackboard.name})"
   override def findLens(name: List[String]): Lens[T, String] = blackboard.findLens(name)
 
@@ -110,7 +117,7 @@ class SimpleBlackboard[B](val name: String, var children: List[BlackboardItem[B,
 
     }
   }
-  def toJson(b: B) = JsonObject("name" -> JsonList(children.map(_.toJson(b))))
+  def toJson(b: B)(implicit bundle: ResourceBundle) = JsonList(children.map(_.toJson(List(), b)))
   def validate(b: B) = children.flatMap(_.validate(b))
   override def findLens(name: List[String]): Lens[B, String] = name match {
     case head :: tail => children.find(_.name == head).fold(throw new RuntimeException(s"could could not find [$name]")) { child => child.lensAndFindLens(tail) }
@@ -126,8 +133,8 @@ class SimpleBlackboard[B](val name: String, var children: List[BlackboardItem[B,
 }
 
 trait Question {
-  def isDefined(s: String) = if (s.isEmpty) List(ValidateProblem("Must be speficied")) else List()
-  def isNonZero(g: GBP) = if (g.amnt == 0) List(ValidateProblem("Must be speficied")) else List()
+  def isDefined(s: String) = if (s.isEmpty) List(ValidateProblem("Required")) else List()
+  def isNonZero(g: GBP) = if (g.amnt == 0) List(ValidateProblem("Required")) else List()
   def allgood[S](s: S) = List()
 
   implicit val addressStringL = Lens[Address, String](_.s, (a, s) => a.copy(s = s))
@@ -144,7 +151,7 @@ trait Question {
     val totalLiabilitiesF = question[GBP]("totalLiabilities") getter (_.totalLiabilities) setter ((i, n) => i.copy(totalLiabilities = n)) validate isNonZero
     val shareHoldersInterestF = question[GBP]("shareHoldersInterest") getter (_.shareHoldersInterest) setter ((i, n) => i.copy(shareHoldersInterest = n)) validate isNonZero
   }
-  val profitAndLoss = new SimpleBlackboard[ProfitAndLoss]("profitAndLostt") {
+  val profitAndLoss = new SimpleBlackboard[ProfitAndLoss]("profitAndLost") {
     val nettExpenditureF = question[GBP]("nettExpenditure") getter (_.nettExpenditure) setter ((i, n) => i.copy(nettExpenditure = n)) validate isNonZero
     val nettIncomeF = question[GBP]("nettIncome") getter (_.nettIncome) setter ((i, n) => i.copy(nettIncome = n)) validate isNonZero
   }
@@ -160,10 +167,10 @@ trait Question {
   }
 
 
-  val decision: Entity => Option[(BlackboardItem[Entity, _], String)] = Decision(blackboard.identityF -> "showIdentity", blackboard.financialDataF -> "showFinancialdata")
+  val decision: Entity => Option[(BlackboardItem[Entity, _], String)] = Decision(blackboard.identityF -> "entity.identity", blackboard.financialDataF -> "identity.financialData")
 
   val entity = Entity(
-    Identity("UBS", IndustrySector("something"), Address(""), Address("Operation address"), TeleNo("phoneNo"), TeleNo("fax"), Website(""), BIC("someBic"), Chaps("someChaps"), ClearingCode("someClearingCode")),
+    Identity("UBS", IndustrySector("something"), Address(""), Address(""), TeleNo("phoneNo"), TeleNo("fax"), Website(""), BIC("someBic"), Chaps("someChaps"), ClearingCode("someClearingCode")),
     FinancialData(BalanceSheet(totalNetAssets = GBP(123), totalLiabilities = GBP(234), shareHoldersInterest = GBP(0)), ProfitAndLoss(nettIncome = GBP(12323), nettExpenditure = GBP(234))),
     Activities("someMainActivies", "someProductAndServices", "someBuisnessLine", Naics("someNaicsCode"), Nace(144)),
     GateKeeperThings(false)
@@ -172,7 +179,7 @@ trait Question {
 }
 
 object Question extends Question with App {
-
+  implicit val resource = ResourceBundle.getBundle("message")
   //  println(blackboard.toJson(entity))
   import one.xingyi.json4s.Json4sWriter._
   println(implicitly[JsonWriter[JValue]].apply(blackboard.toJson(entity)))
@@ -191,29 +198,39 @@ object Question extends Question with App {
 
 
 object Website extends App with Question {
+  implicit val resource = ResourceBundle.getBundle("message")
   import Json4sWriter._
   implicit def template: MustacheWithTemplate[JValue] = Mustache.withTemplate("main.template.mustache") apply("question.mustache", "Coolness")
   val executor = HttpUtils.makeDefaultExecutor
   var theEntity = entity
-  def html = template.apply(JsonMaps(JsonObject("question" -> decision(theEntity).fold("None")(_._2), "entity" -> blackboard.toJson(theEntity))))
+  def html = {
+    val dec = decision(theEntity) match {
+      case None => JsonString("none")
+      case Some((entity, name)) => JsonObject("name" -> name, "val" -> entity.toJson(List(), theEntity))
+    }
+    template.apply(JsonMaps(JsonObject("question" -> dec, "entity" -> blackboard.toJson(theEntity))))
+  }
   new SimpleHttpServer(9000, executor,
     new PathAndHandler {
       override def path(): String = "/change"
       override def handle(httpExchange: HttpExchange): Unit = {
         try {
-          httpExchange.getRequestURI.getQuery.split("&").flatMap(s => s.split('=')).toList match {
-            case List(_, left, _, right) =>
-              theEntity = blackboard.update(theEntity)(List(left -> right))
-            case List(_, left, _) =>
-              theEntity = blackboard.update(theEntity)(List(left -> ""))
-          }
+          val x = httpExchange.getRequestURI.getQuery.split("&").toList.flatMap(s => s.split('=').toList match {
+            case left :: right :: _ => List(left -> right)
+            case left :: _ => List(left -> "")
+            case _ => List()
+          })
+          println(x)
+          theEntity = blackboard.update(theEntity)(x)
           HttpUtils.process(httpExchange, () => new SimpleHttpResponse(200, "text/html", html))
-        } catch {case e => e.printStackTrace()}
+        } catch {case e => e.printStackTrace(); HttpUtils.process(httpExchange, () => new SimpleHttpResponse(200, "text/html", s"Error: $e"))}
       }
     },
     new PathAndHandler {
       override def path(): String = "/"
       override def handle(httpExchange: HttpExchange): Unit = {
+
+        theEntity = entity
 
         HttpUtils.process(httpExchange, () => new SimpleHttpResponse(200, "text/html", html))
       }
