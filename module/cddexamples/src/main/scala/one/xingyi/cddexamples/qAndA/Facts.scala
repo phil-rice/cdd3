@@ -1,8 +1,14 @@
 package one.xingyi.cddexamples.qAndA
+import java.util.concurrent.Executor
+
+import com.sun.net.httpserver.HttpExchange
+import core.{HttpUtils, PathAndHandler, SimpleHttpResponse, SimpleHttpServer}
+import one.xingyi.cddexamples.qAndA.Question.{blackboard, entity, newEntity}
+import one.xingyi.cddmustache.{Mustache, MustacheWithTemplate}
 import one.xingyi.cddutilities.functions.Lens
 import one.xingyi.cddutilities.json._
 import one.xingyi.cddutilities.language.AnyLanguage._
-import one.xingyi.cddutilities.strings.ShortPrint
+import one.xingyi.cddutilities.strings.{ShortPrint, Strings}
 import one.xingyi.json4s.Json4sWriter
 import org.json4s.JValue
 
@@ -49,11 +55,8 @@ trait Manipulate[DS] {
   val activites: Lens[DS, Activities] = ???
 }
 
-trait Question[T] extends (T => JsonObject)
-
-
 object Decision {
-  def apply[E](items: (BlackboardItem[E, _], String)*)(implicit blackboard: Blackboard[E]) = { e: E => items.find{case ( bi,_) => bi.validate(e).nonEmpty }}
+  def apply[E](items: (BlackboardItem[E, _], String)*)(implicit blackboard: Blackboard[E]) = { e: E => items.find { case (bi, _) => bi.validate(e).nonEmpty } }
 }
 
 
@@ -64,32 +67,37 @@ import one.xingyi.cddutilities.json.JsonLanguage._
 case class ValidateProblem(s: String)
 
 trait Blackboard[B] {
+  def findLens(name: List[String]): Lens[B, String]
   def name: String
   def children: List[BlackboardItem[B, _]]
 }
 
 trait BlackboardItem[B, T] extends Blackboard[T] {
   def lens: Lens[B, T]
+  def lensAndFindLens(name: List[String]): Lens[B, String] = lens andThen findLens(name)
   def validateFn: T => List[ValidateProblem]
   def validate(b: B): immutable.Seq[ValidateProblem] = validateFn(lens(b))
   def toJson(b: B): JsonValue
 }
-case class SimpleBlackboardItem[B, T](name: String, lens: Lens[B, T], validateFn: T => List[ValidateProblem])(implicit shortPrint: ShortPrint[T]) extends BlackboardItem[B, T] {
+case class SimpleBlackboardItem[B, T](name: String, lens: Lens[B, T], validateFn: T => List[ValidateProblem])(implicit stringLens: Lens[T, String]) extends BlackboardItem[B, T] {
   override def children: List[BlackboardItem[T, _]] = List()
-  override def toJson(b: B): JsonValue = using(lens(b)) { t => JsonObject("name" -> name, "value" -> shortPrint(t), "validation" -> JsonList(validateFn(t).map(v => JsonString(v.s)))) }
+  override def toJson(b: B): JsonValue = using(lens(b)) { t => JsonObject("name" -> name, "value" -> stringLens(t), "validation" -> JsonList(validateFn(t).map(v => JsonString(v.s)))) }
+  override def findLens(name: List[String]): Lens[T, String] = if (name.isEmpty) stringLens else throw new RuntimeException(s"Cannot process name [${name}]")
 }
 
 case class NestedBlackboard[B, T](blackboard: Blackboard[T], lens: Lens[B, T]) extends BlackboardItem[B, T] {
   override def name: String = blackboard.name
   override def children: List[BlackboardItem[T, _]] = blackboard.children
   override def validateFn: T => List[ValidateProblem] = t => children.flatMap(_.validate(t))
-  override def toJson(b: B): JsonValue = using(lens(b)) { t => JsonObject("name" -> JsonList(children.map(_.toJson(t)))) }
+  override def toJson(b: B): JsonValue = using(lens(b)) { t => JsonObject(name -> JsonList(children.map(_.toJson(t)))) }
   override def toString: String = s"Blackboard(${blackboard.name})"
+  override def findLens(name: List[String]): Lens[T, String] = blackboard.findLens(name)
+
 }
 
 class SimpleBlackboard[B](val name: String, var children: List[BlackboardItem[B, _]] = List()) extends Blackboard[B] {
   case class question[T](name: String) {
-    case class getter(g: B => T) {
+    case class getter(g: B => T)(implicit stringLens: Lens[T, String]) {
       case class setter(s: (B, T) => B) {
         def validate(fn: T => List[ValidateProblem]) =
           SimpleBlackboardItem(name, Lens[B, T](g, s), fn) sideeffect (i => children = children :+ i)
@@ -102,17 +110,30 @@ class SimpleBlackboard[B](val name: String, var children: List[BlackboardItem[B,
 
     }
   }
-  def toJson(b: B )= JsonObject("name" -> JsonList(children.map(_.toJson(b))))
-  def validate (b: B) = children.flatMap(_.validate(b))
+  def toJson(b: B) = JsonObject("name" -> JsonList(children.map(_.toJson(b))))
+  def validate(b: B) = children.flatMap(_.validate(b))
+  override def findLens(name: List[String]): Lens[B, String] = name match {
+    case head :: tail => children.find(_.name == head).fold(throw new RuntimeException(s"could could not find [$name]")) { child => child.lensAndFindLens(tail) }
+    case _ => throw new RuntimeException("could not find for Nil")
+  }
+
+  def update(e: B)(list: List[(String, String)]): B = {
+    list.foldLeft(e) { case (acc, (name, value)) =>
+      val lens: Lens[B, String] = findLens(name.split("\\.").filterNot(_.isEmpty).toList)
+      lens.set(acc, value)
+    }
+  }
 }
 
-object Question extends App{
+trait Question {
   def isDefined(s: String) = if (s.isEmpty) List(ValidateProblem("Must be speficied")) else List()
   def isNonZero(g: GBP) = if (g.amnt == 0) List(ValidateProblem("Must be speficied")) else List()
   def allgood[S](s: S) = List()
 
+  implicit val addressStringL = Lens[Address, String](_.s, (a, s) => a.copy(s = s))
+  implicit val gbpToStringL = Lens[GBP, String](_.amnt.toString, (a, s) => a.copy(amnt = s.toInt))
 
-  val identity = new SimpleBlackboard[Identity]("Identity") {
+  val identity = new SimpleBlackboard[Identity]("identity") {
     val nameF = question[String]("name") getter (_.name) setter ((i, n) => i.copy(name = n)) validate isDefined
     val opAddressF = question[Address]("operationAddress") getter (_.operationAddress) setter ((i, n) => i.copy(operationAddress = n)) validate ({ a: Address => a.s } andThen isDefined)
     val regAddressF = question[Address]("registeredAddress") getter (_.registeredAddress) setter ((i, n) => i.copy(registeredAddress = n)) validate allgood
@@ -139,8 +160,7 @@ object Question extends App{
   }
 
 
-  val decision = Decision(blackboard.identityF -> "showIdentity", blackboard.financialDataF -> "showFinancialdata")
-
+  val decision: Entity => Option[(BlackboardItem[Entity, _], String)] = Decision(blackboard.identityF -> "showIdentity", blackboard.financialDataF -> "showFinancialdata")
 
   val entity = Entity(
     Identity("UBS", IndustrySector("something"), Address(""), Address("Operation address"), TeleNo("phoneNo"), TeleNo("fax"), Website(""), BIC("someBic"), Chaps("someChaps"), ClearingCode("someClearingCode")),
@@ -149,13 +169,57 @@ object Question extends App{
     GateKeeperThings(false)
   )
 
-//  println(blackboard.toJson(entity))
+}
+
+object Question extends Question with App {
+
+  //  println(blackboard.toJson(entity))
   import one.xingyi.json4s.Json4sWriter._
   println(implicitly[JsonWriter[JValue]].apply(blackboard.toJson(entity)))
   println(decision(entity))
   println
   println("validation")
   println(blackboard.validate(entity))
+
+
+  println(blackboard.findLens(List("identity", "name"))(entity))
+  println(blackboard.findLens(List("financialData", "balanceSheet", "totalNetAssets"))(entity))
+  val newEntity = blackboard.update(entity)(List("financialData.balanceSheet.totalNetAssets" -> "1234", "identity.name" -> "newName"))
+  println(implicitly[JsonWriter[JValue]].apply(blackboard.toJson(newEntity)))
+
+}
+
+
+object Website extends App with Question {
+  import Json4sWriter._
+  implicit def template: MustacheWithTemplate[JValue] = Mustache.withTemplate("main.template.mustache") apply("question.mustache", "Coolness")
+  val executor = HttpUtils.makeDefaultExecutor
+  var theEntity = entity
+  def html = template.apply(JsonMaps(JsonObject("question" -> decision(theEntity).fold("None")(_._2), "entity" -> blackboard.toJson(theEntity))))
+  new SimpleHttpServer(9000, executor,
+    new PathAndHandler {
+      override def path(): String = "/change"
+      override def handle(httpExchange: HttpExchange): Unit = {
+        try {
+          httpExchange.getRequestURI.getQuery.split("&").flatMap(s => s.split('=')).toList match {
+            case List(_, left, _, right) =>
+              theEntity = blackboard.update(theEntity)(List(left -> right))
+            case List(_, left, _) =>
+              theEntity = blackboard.update(theEntity)(List(left -> ""))
+          }
+          HttpUtils.process(httpExchange, () => new SimpleHttpResponse(200, "text/html", html))
+        } catch {case e => e.printStackTrace()}
+      }
+    },
+    new PathAndHandler {
+      override def path(): String = "/"
+      override def handle(httpExchange: HttpExchange): Unit = {
+
+        HttpUtils.process(httpExchange, () => new SimpleHttpResponse(200, "text/html", html))
+      }
+    }
+  ).start()
+
 }
 
 
