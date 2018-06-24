@@ -1,20 +1,19 @@
 package one.xingyi.cddexamples.qAndA
 import java.util.ResourceBundle
-import java.util.concurrent.Executor
 
 import com.sun.net.httpserver.HttpExchange
 import core.{HttpUtils, PathAndHandler, SimpleHttpResponse, SimpleHttpServer}
-import one.xingyi.cddexamples.qAndA.Question.{blackboard, entity, newEntity}
+import one.xingyi.cddexamples.{BusinessType, Config, EntityDetails, MifidDecisionMaker}
 import one.xingyi.cddmustache.{Mustache, MustacheWithTemplate}
 import one.xingyi.cddutilities.functions.Lens
 import one.xingyi.cddutilities.json._
 import one.xingyi.cddutilities.language.AnyLanguage._
-import one.xingyi.cddutilities.strings.{ShortPrint, Strings}
 import one.xingyi.json4s.Json4sWriter
 import org.json4s.JValue
 
 import scala.collection.immutable
 import scala.language.reflectiveCalls
+import scala.util.Try
 case class Fact[DS, T](id: String, lens: Lens[DS, T])
 
 case class IndustrySector(s: String)
@@ -27,7 +26,7 @@ case class Chaps(s: String)
 
 case class Naics(code: String)
 case class Nace(code: Int)
-case class Identity(name: String,
+case class Identity(name: String, businessType: BusinessType,
                     industrySectory: IndustrySector,
                     registeredAddress: Address,
                     operationAddress: Address,
@@ -37,12 +36,19 @@ case class Identity(name: String,
                     chaps: Chaps,
                     clearingCode: ClearingCode)
 
-case class GBP(amnt: Int)
-case class BalanceSheet(totalNetAssets: GBP, totalLiabilities: GBP, shareHoldersInterest: GBP)
-case class ProfitAndLoss(nettIncome: GBP, nettExpenditure: GBP)
-case class FinancialData(balanceSheet: BalanceSheet, profitAndLoss: ProfitAndLoss)
+case class GBP(amnt: Long) {
+  def >=(other: GBP) = amnt >= other.amnt
+  def -(other: GBP) = GBP(amnt - other.amnt)
+}
+case class BalanceSheet(totalNetAssets: GBP, totalLiabilities: GBP, shareHoldersInterest: GBP) {
+  def total = totalNetAssets - totalLiabilities
+}
+case class ProfitAndLoss(nettIncome: GBP, nettExpenditure: GBP) {
+  def turnover: GBP = nettIncome - nettExpenditure
+}
+case class FinancialData(balanceSheet: BalanceSheet, profitAndLoss: ProfitAndLoss) {}
 
-case class Activities(mainActivities: String, productAndServices: String, businessLine: String, naics: Naics, nace: Nace)
+case class Activities(mainActivities: String, mainBusinessIsFinancialTransactions: Boolean, productAndServices: String, businessLine: String, naics: Naics, nace: Nace)
 
 case class GateKeeperThings(bearerShares: Boolean)
 
@@ -139,9 +145,10 @@ trait Question {
 
   implicit val addressStringL = Lens[Address, String](_.s, (a, s) => a.copy(s = s))
   implicit val gbpToStringL = Lens[GBP, String](_.amnt.toString, (a, s) => a.copy(amnt = s.toInt))
+  implicit val businessTypeToStringL = Lens[BusinessType, String](_.s.toString, (a, s) => a.copy(s = s))
 
   val identity = new SimpleBlackboard[Identity]("identity") {
-    val nameF = question[String]("name") getter (_.name) setter ((i, n) => i.copy(name = n)) validate isDefined
+    val nameF = question[BusinessType]("name") getter (_.businessType) setter ((i, n) => i.copy(businessType = n)) validate ({ b: BusinessType => b.s } andThen isDefined)
     val opAddressF = question[Address]("operationAddress") getter (_.operationAddress) setter ((i, n) => i.copy(operationAddress = n)) validate ({ a: Address => a.s } andThen isDefined)
     val regAddressF = question[Address]("registeredAddress") getter (_.registeredAddress) setter ((i, n) => i.copy(registeredAddress = n)) validate allgood
   }
@@ -170,9 +177,10 @@ trait Question {
   val decision: Entity => Option[(BlackboardItem[Entity, _], String)] = Decision(blackboard.identityF -> "entity.identity", blackboard.financialDataF -> "identity.financialData")
 
   val entity = Entity(
-    Identity("UBS", IndustrySector("something"), Address(""), Address(""), TeleNo("phoneNo"), TeleNo("fax"), Website(""), BIC("someBic"), Chaps("someChaps"), ClearingCode("someClearingCode")),
+    Identity("UBS", BusinessType.other,
+      IndustrySector("something"), Address(""), Address(""), TeleNo("phoneNo"), TeleNo("fax"), Website(""), BIC("someBic"), Chaps("someChaps"), ClearingCode("someClearingCode")),
     FinancialData(BalanceSheet(totalNetAssets = GBP(123), totalLiabilities = GBP(234), shareHoldersInterest = GBP(0)), ProfitAndLoss(nettIncome = GBP(12323), nettExpenditure = GBP(234))),
-    Activities("someMainActivies", "someProductAndServices", "someBuisnessLine", Naics("someNaicsCode"), Nace(144)),
+    Activities("someMainActivies", false, "someProductAndServices", "someBuisnessLine", Naics("someNaicsCode"), Nace(144)),
     GateKeeperThings(false)
   )
 
@@ -203,12 +211,17 @@ object Website extends App with Question {
   implicit def template: MustacheWithTemplate[JValue] = Mustache.withTemplate("main.template.mustache") apply("question.mustache", "Coolness")
   val executor = HttpUtils.makeDefaultExecutor
   var theEntity = entity
+
+  val decisionMaker = new MifidDecisionMaker().categoriser
+  implicit val config = Config(balanceSheetThreshold = GBP(20000000), netTurnoverThreshold = GBP(400000000), ownFundsThreshold = GBP(2000000))
+
+//  decisionMaker.tools.trace("mifid")
   def html = {
     val dec = decision(theEntity) match {
       case None => JsonString("none")
       case Some((entity, name)) => JsonObject("name" -> name, "val" -> entity.toJson(List(), theEntity))
     }
-    template.apply(JsonMaps(JsonObject("question" -> dec, "entity" -> blackboard.toJson(theEntity))))
+    template.apply(JsonMaps(JsonObject("conclusion" -> Try(decisionMaker(EntityDetails(theEntity))).toString, "question" -> dec,  "entity" -> blackboard.toJson(theEntity))))
   }
   new SimpleHttpServer(9000, executor,
     new PathAndHandler {
