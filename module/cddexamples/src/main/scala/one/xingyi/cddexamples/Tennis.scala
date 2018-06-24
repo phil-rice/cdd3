@@ -79,7 +79,7 @@ object Tennis extends Tennis with App {
   import one.xingyi.json4s.Json4s._
 
   implicit def v[P, R] = new SimpleValidation[P, R]
-  tennis.tools.trace("tennis")
+  tennis.tools.printTraceAboutAdding("tennis")
   tennis.tools.printPages("tennis")
   dump
 }

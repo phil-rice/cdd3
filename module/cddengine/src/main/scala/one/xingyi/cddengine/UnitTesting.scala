@@ -11,12 +11,20 @@ trait CddRunner extends IdMaker {
   protected lazy val tryTests = engines.map(engineList => NestedTest(getClass.getSimpleName, engineList.map(_.tools.test(s"a engine $getNextId"))))
 }
 
-case class ScenarioFailedException[R](s: Scenario[_, _], result: R)(implicit short: ShortPrint[R]) extends RuntimeException(s"Actual result: ${short(result)}")
+case class ScenarioFailedException[P, R](s: Scenario[P, R], trace: TraceThroughEngineResultData[P, R], result: R)(implicit shortP: ShortPrint[P],shortR: ShortPrint[R]) extends
+  RuntimeException(s"Actual result: ${shortR(result)}\n\n" +
+    s"${trace.trace.map { d => d.logic.fn.isDefinedAt(s.situation) + " " + d.logic.definedInSourceCodeAt + " " + d.logic.ifString }.mkString("\n")}\n" +
+    s"Situation ${shortP(s.situation)}\n"+
+    s"Detailed ${s.situation}")
 
 
-class SimpleTestMaker[P, R](name: String, engine: Engine[P, R])(implicit shortPrintScenario: ShortPrint[Scenario[P, R]]) {
+class SimpleTestMaker[P:ShortPrint, R:ShortPrint](name: String, engine: Engine[P, R])(implicit shortPrintScenario: ShortPrint[Scenario[P, R]]) {
   import one.xingyi.cddutilities.language.AnyLanguage._
-  def checkResult(s: Scenario[P, R]) = engine(s.situation) sideeffect (result => if (!s.acceptResult(s.situation, result)) throw new ScenarioFailedException(s, result))
+  def checkResult(s: Scenario[P, R]) = engine(s.situation) sideeffect (result => if (!s.acceptResult(s.situation, result)) {
+    val trace = engine.tools.trace(s.situation)
+
+    throw new ScenarioFailedException(s, trace, result)
+  })
 
   def validate(engine: Engine[P, R])(s: Scenario[P, R]): CddTest = ScenarioTest(ShortPrint(s), () => checkResult(s))
 

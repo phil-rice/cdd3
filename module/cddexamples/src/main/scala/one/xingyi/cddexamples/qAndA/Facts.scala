@@ -63,7 +63,7 @@ trait Manipulate[DS] {
 }
 
 object Decision {
-  def apply[E](items: (BlackboardItem[E, _], String)*)(implicit blackboard: Blackboard[E]) = { e: E => items.find { case (bi, _) => bi.validate(e).nonEmpty } }
+  def apply[E](items: (BlackboardItem[E, _], String)*)(implicit blackboard: Blackboard[E]) = { e: E => items.find { case (bi, _) => bi.validate(List(), e).nonEmpty } }
 }
 
 
@@ -82,26 +82,27 @@ trait Blackboard[B] {
 trait BlackboardItem[B, T] extends Blackboard[T] {
   def lens: Lens[B, T]
   def lensAndFindLens(name: List[String]): Lens[B, String] = lens andThen findLens(name)
-  def validateFn: T => List[ValidateProblem]
-  def validate(b: B): immutable.Seq[ValidateProblem] = validateFn(lens(b))
+  def validateFn: List[String] => T => List[ValidateProblem]
+  def validate(list: List[String], b: B): immutable.Seq[ValidateProblem] = validateFn(list)(lens(b))
   def toJson(prefix: List[String], b: B)(implicit bundle: ResourceBundle): JsonValue
 }
-case class SimpleBlackboardItem[B, T](name: String, lens: Lens[B, T], validateFn: T => List[ValidateProblem])(implicit stringLens: Lens[T, String]) extends BlackboardItem[B, T] {
+case class SimpleBlackboardItem[B, T](name: String, lens: Lens[B, T], rawValidateFn: List[String] => T => List[ValidateProblem])(implicit stringLens: Lens[T, String]) extends BlackboardItem[B, T] {
   override def children: List[BlackboardItem[T, _]] = List()
   override def toJson(prefix: List[String], b: B)(implicit bundle: ResourceBundle): JsonValue = using(lens(b)) { t =>
     JsonObject("leaf" -> JsonObject(
       "id" -> (prefix :+ name).mkString("."),
       "name" -> bundle.getString((prefix :+ name).mkString(".")),
       "value" -> stringLens(t),
-      "validation" -> JsonList(validateFn(t).map(v => JsonString(v.s)))))
+      "validation" -> JsonList(validateFn(name :: prefix)(t).map(v => JsonString(v.s)))))
   }
   override def findLens(name: List[String]): Lens[T, String] = if (name.isEmpty) stringLens else throw new RuntimeException(s"Cannot process name [${name}]")
+  override def validateFn: List[String] => T => List[ValidateProblem] = list => rawValidateFn(name :: list)
 }
 
 case class NestedBlackboard[B, T](blackboard: Blackboard[T], lens: Lens[B, T]) extends BlackboardItem[B, T] {
   override def name: String = blackboard.name
   override def children: List[BlackboardItem[T, _]] = blackboard.children
-  override def validateFn: T => List[ValidateProblem] = t => children.flatMap(_.validate(t))
+  override def validateFn: List[String] => T => List[ValidateProblem] = list => t => children.flatMap(_.validate(name :: list, t))
   override def toJson(prefix: List[String], b: B)(implicit bundle: ResourceBundle): JsonValue = using(lens(b)) { t => JsonObject("name" -> bundle.getString((("title" :: prefix) :+ name).mkString(".")), "children" -> JsonList(children.map(_.toJson(prefix :+ name, t)))) }
   override def toString: String = s"Blackboard(${blackboard.name})"
   override def findLens(name: List[String]): Lens[T, String] = blackboard.findLens(name)
@@ -112,7 +113,7 @@ class SimpleBlackboard[B](val name: String, var children: List[BlackboardItem[B,
   case class question[T](name: String) {
     case class getter(g: B => T)(implicit stringLens: Lens[T, String]) {
       case class setter(s: (B, T) => B) {
-        def validate(fn: T => List[ValidateProblem]) =
+        def validate(fn: List[String] => T => List[ValidateProblem]) =
           SimpleBlackboardItem(name, Lens[B, T](g, s), fn) sideeffect (i => children = children :+ i)
       }
     }
@@ -124,7 +125,7 @@ class SimpleBlackboard[B](val name: String, var children: List[BlackboardItem[B,
     }
   }
   def toJson(b: B)(implicit bundle: ResourceBundle) = JsonList(children.map(_.toJson(List(), b)))
-  def validate(b: B) = children.flatMap(_.validate(b))
+  def validate(list: List[String], b: B) = children.flatMap(_.validate(name :: list, b))
   override def findLens(name: List[String]): Lens[B, String] = name match {
     case head :: tail => children.find(_.name == head).fold(throw new RuntimeException(s"could could not find [$name]")) { child => child.lensAndFindLens(tail) }
     case _ => throw new RuntimeException("could not find for Nil")
@@ -139,17 +140,17 @@ class SimpleBlackboard[B](val name: String, var children: List[BlackboardItem[B,
 }
 
 trait Question {
-  def isDefined(s: String) = if (s.isEmpty) List(ValidateProblem("Required")) else List()
-  def isNonZero(g: GBP) = if (g.amnt == 0) List(ValidateProblem("Required")) else List()
-  def allgood[S](s: S) = List()
+  def isDefined(list: List[String])(s: String) = if (s.isEmpty) List(ValidateProblem(s"$list Required")) else List()
+  def isNonZero(list: List[String])(g: GBP) = if (g.amnt == 0) List(ValidateProblem(s"$list Required")) else List()
+  def allgood[S](list: List[String])(s: S) = List()
 
   implicit val addressStringL = Lens[Address, String](_.s, (a, s) => a.copy(s = s))
   implicit val gbpToStringL = Lens[GBP, String](_.amnt.toString, (a, s) => a.copy(amnt = s.toInt))
   implicit val businessTypeToStringL = Lens[BusinessType, String](_.s.toString, (a, s) => a.copy(s = s))
 
   val identity = new SimpleBlackboard[Identity]("identity") {
-    val nameF = question[BusinessType]("name") getter (_.businessType) setter ((i, n) => i.copy(businessType = n)) validate ({ b: BusinessType => b.s } andThen isDefined)
-    val opAddressF = question[Address]("operationAddress") getter (_.operationAddress) setter ((i, n) => i.copy(operationAddress = n)) validate ({ a: Address => a.s } andThen isDefined)
+    val nameF = question[BusinessType]("name") getter (_.businessType) setter ((i, n) => i.copy(businessType = n)) validate (list => ({ b: BusinessType => b.s } andThen isDefined(list)))
+    val opAddressF = question[Address]("operationAddress") getter (_.operationAddress) setter ((i, n) => i.copy(operationAddress = n)) validate (list => { a: Address => a.s } andThen isDefined(list))
     val regAddressF = question[Address]("registeredAddress") getter (_.registeredAddress) setter ((i, n) => i.copy(registeredAddress = n)) validate allgood
   }
 
@@ -194,7 +195,7 @@ object Question extends Question with App {
   println(decision(entity))
   println
   println("validation")
-  println(blackboard.validate(entity))
+  println(blackboard.validate(List(), entity))
 
 
   println(blackboard.findLens(List("identity", "name"))(entity))
@@ -215,13 +216,13 @@ object Website extends App with Question {
   val decisionMaker = new MifidDecisionMaker().categoriser
   implicit val config = Config(balanceSheetThreshold = GBP(20000000), netTurnoverThreshold = GBP(400000000), ownFundsThreshold = GBP(2000000))
 
-//  decisionMaker.tools.trace("mifid")
+  //  decisionMaker.tools.trace("mifid")
   def html = {
     val dec = decision(theEntity) match {
       case None => JsonString("none")
       case Some((entity, name)) => JsonObject("name" -> name, "val" -> entity.toJson(List(), theEntity))
     }
-    template.apply(JsonMaps(JsonObject("conclusion" -> Try(decisionMaker(EntityDetails(theEntity))).toString, "question" -> dec,  "entity" -> blackboard.toJson(theEntity))))
+    template.apply(JsonMaps(JsonObject("conclusion" -> Try(decisionMaker(EntityDetails(theEntity))).toString, "question" -> dec, "entity" -> blackboard.toJson(theEntity))))
   }
   new SimpleHttpServer(9000, executor,
     new PathAndHandler {

@@ -4,6 +4,7 @@ import java.text.MessageFormat
 
 import one.xingyi.cddscenario.{HasScenarios, Scenario, ScenarioLogic}
 import one.xingyi.cddutilities._
+import one.xingyi.cddutilities.functions.Lens
 import one.xingyi.cddutilities.json.{JsonMaps, JsonObject, JsonWriter, TemplateEngine}
 
 import scala.collection.concurrent.TrieMap
@@ -24,11 +25,14 @@ trait EngineTools[P, R] {
   def useCases: List[UseCase[P, R]]
   def scenarios: List[Scenario[P, R]]
   def decisionTree: DecisionTree[P, R]
-  def issues: List[DecisionIssue[P,R]]
-  def trace[J: JsonWriter](prefix: String)(implicit config: RenderingConfig, validation: Validation[P, R], template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit
+  def issues: List[DecisionIssue[P, R]]
+  def printTraceAboutAdding[J: JsonWriter](prefix: String)(implicit config: RenderingConfig, validation: Validation[P, R], template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit
   def printPages[J: JsonWriter](prefix: String)(implicit config: RenderingConfig, template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit
   def test(name: String): CddTest
+  def trace(p: P): TraceThroughEngineResultData[P, R]
 }
+
+case class TraceThroughEngineResultData[P, R](trace: List[DecisionTreeNode[P, R]], lens: Lens[DecisionTreeNode[P, R], DecisionTreeNode[P, R]])
 
 class SimpleEngineTools[P, R](engine: Engine1[P, R]) extends EngineTools[P, R] {
   override def decisionTree: DecisionTree[P, R] = engine.decisionTree
@@ -37,13 +41,14 @@ class SimpleEngineTools[P, R](engine: Engine1[P, R]) extends EngineTools[P, R] {
   protected def printPrinter[J: JsonWriter](implicit engineUrlGenerators: EngineUrlGenerators[P, R], config: RenderingConfig, template: TemplateEngine[J]) = DecisionTreeRendering.simple[P, R] andThen (x => JsonDataForTree[J, P, R](x, None)) andThen template.apply
   protected def tracePrinter[J: JsonWriter](data: WithScenarioData[P, R])(implicit engineUrlGenerators: EngineUrlGenerators[P, R], template: TemplateEngine[J]) =
     new WithScenarioRendering[P, R](data) andThen JsonDataForTree.make[J, P, R](data) andThen template.apply
-  override def trace[J: JsonWriter](prefix: String)(implicit renderingConfig: RenderingConfig, validation: Validation[P, R], template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit =
+  override def printTraceAboutAdding[J: JsonWriter](prefix: String)(implicit renderingConfig: RenderingConfig, validation: Validation[P, R], template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit =
     (new TraceRenderer).apply(tracePrinter[J], prefix)(engine)
 
   override def printPages[J: JsonWriter](prefix: String)(implicit renderingConfig: RenderingConfig, template: TemplateEngine[J], urlGenerators: EngineUrlGenerators[P, R], printRenderToFile: PrintRenderToFile): Unit =
     (new PrintPagesRenderer).apply[P, R](printPrinter[J], tracePrinter[J])(prefix, engine)
   def test(name: String): CddTest = new SimpleTestMaker[P, R](name, engine).apply
   override def issues: List[DecisionIssue[P, R]] = engine.decisionTree.issues
+  override def trace(p: P): TraceThroughEngineResultData[P, R] = TraceThroughEngineResultData[P, R](DecisionTree.findWithParents(engine.decisionTree, p), decisionTree.root.findLens(p))
 }
 
 

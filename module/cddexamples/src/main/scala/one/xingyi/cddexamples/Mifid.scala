@@ -3,6 +3,7 @@ import one.xingyi.cddengine.{Engine, SimpleValidation, UseCase1}
 import one.xingyi.cddexamples
 import one.xingyi.cddexamples.qAndA._
 import one.xingyi.cddmustache.Mustache
+import one.xingyi.cddutilities.strings.ShortPrint
 
 import scala.language.postfixOps
 import scala.language.implicitConversions
@@ -26,6 +27,7 @@ object BusinessType {
   val nationalRegionalBodiesOrSimilar = List(nationalGovernment, regionalGovernment, publicBodiesThatManagePublicDebt)
 
   val other = BusinessType("other")
+  val invalid = BusinessType("")
 }
 case class BusinessType(s: String) extends AnyVal
 
@@ -39,17 +41,20 @@ case object RetailClient extends MifidConclusion
 case class Config(balanceSheetThreshold: GBP, netTurnoverThreshold: GBP, ownFundsThreshold: GBP)
 
 
+object EntityDetails {
+  implicit def shortPrintForED: ShortPrint[EntityDetails] = ed => s"Entity(${ed.entity.identity.name.toString})"
+}
 case class EntityDetails(entity: Entity)(implicit config: Config, blackboard: Blackboard[Entity]) {
   def bigBalanceSheet = entity.financialData.balanceSheet.total >= config.balanceSheetThreshold
   def highTurnoverSheet = entity.financialData.profitAndLoss.turnover >= config.netTurnoverThreshold
   def highOwnFunds = entity.financialData.balanceSheet.shareHoldersInterest >= config.ownFundsThreshold
   val countOfHighMoneyMakers = List(bigBalanceSheet, highTurnoverSheet, highOwnFunds).count(_ == true)
-  def hasValidationIssues = {val validation= blackboard.children.flatMap(_.validate(entity));; println(validation + " " + validation.isEmpty); validation.nonEmpty}
-  override def toString: String = s"EntityDetais($entity, ($bigBalanceSheet, $highTurnoverSheet, $highOwnFunds), count $countOfHighMoneyMakers)"
+  def hasValidationIssues = {val validation = blackboard.children.flatMap(_.validate(List(), entity)); ; println(validation + " " + validation.isEmpty); validation.nonEmpty}
+  override def toString: String = s"EntityDetais($entity, ($bigBalanceSheet, $highTurnoverSheet, $highOwnFunds), count $countOfHighMoneyMakers, validation: ${blackboard.children.flatMap(_.validate(List(), entity))})"
 }
 
 
-class MifidDecisionMaker extends Question{
+class MifidDecisionMaker extends Question {
   type MifidUC = UseCase1[EntityDetails, MifidConclusion]
   import one.xingyi.cddutilities.language.AnyLanguage._
 
@@ -57,7 +62,7 @@ class MifidDecisionMaker extends Question{
   private val prototypeFinancialData = FinancialData(BalanceSheet(totalNetAssets = GBP(123), totalLiabilities = GBP(234), shareHoldersInterest = GBP(0)), ProfitAndLoss(nettIncome = GBP(12323), nettExpenditure = GBP(234)))
   private val prototypeActivities = Activities("someMainActivies", false, "someProductAndServices", "someBuisnessLine", Naics("someNaicsCode"), Nace(144))
   val prototypeEntity = Entity(
-    Identity("", BusinessType(""), IndustrySector("something"), Address(""), Address(""), TeleNo("phoneNo"), TeleNo("fax"), Website(""), BIC("someBic"), Chaps("someChaps"), ClearingCode("someClearingCode")),
+    Identity("", BusinessType(""), IndustrySector("something"), Address("someRegAdd"), Address("someOpAdd"), TeleNo("phoneNo"), TeleNo("fax"), Website(""), BIC("someBic"), Chaps("someChaps"), ClearingCode("someClearingCode")),
     prototypeFinancialData,
     prototypeActivities,
     GateKeeperThings(false)
@@ -74,21 +79,21 @@ class MifidDecisionMaker extends Question{
   implicit class BusinessTypeOps(b: BusinessType)(implicit config: Config, blackboard: Blackboard[Entity]) {
     case class name(name: String) {
       def lotsOfMoney = edWith(name, b, balanceSheetTotal = 1000000000, netTurnover = 1000000000, ownFunds = 1000000000)
-      def highBalanceSheet = edWith(name, b, balanceSheetTotal = 1000000000, netTurnover = 0, ownFunds = 0)
-      def highNetTurnover = edWith(name, b, balanceSheetTotal = 0, netTurnover = 1000000000, ownFunds = 0)
-      def highOwnFunds = edWith(name, b, balanceSheetTotal = 0, netTurnover = 0, ownFunds = 1000000000)
-      def highBSAndOwnFunds = edWith(name, b, balanceSheetTotal = 1000000000, netTurnover = 0, ownFunds = 1000000000)
-      def highTurnoverAndBS = edWith(name, b, balanceSheetTotal = 0, netTurnover = 1000000000, ownFunds = 1000000000)
-      def totallyBrokeAndInviolationofGAP7fold = edWith(name, b, balanceSheetTotal = 0, netTurnover = 0, ownFunds = 0)
-      def mainBuisnessIsInvestment = edWith(name, b, 0, 0, 0, mainBusinessIsFinancialTransactions = true)
+      def highBalanceSheet = edWith(name, b, balanceSheetTotal = 1000000000, netTurnover = 10, ownFunds = 10)
+      def highNetTurnover = edWith(name, b, balanceSheetTotal = 10, netTurnover = 1000000000, ownFunds = 10)
+      def highOwnFunds = edWith(name, b, balanceSheetTotal = 10, netTurnover = 10, ownFunds = 1000000000)
+      def highBSAndOwnFunds = edWith(name, b, balanceSheetTotal = 1000000000, netTurnover = 10, ownFunds = 1000000000)
+      def highTurnoverAndBS = edWith(name, b, balanceSheetTotal = 10, netTurnover = 1000000000, ownFunds = 1000000000)
+      def totallyBrokeAndInviolationofGAP7fold = edWith(name, b, balanceSheetTotal = 10, netTurnover = 10, ownFunds = 10)
+      def mainBuisnessIsInvestment = edWith(name, b, 10, 10, 10, mainBusinessIsFinancialTransactions = true)
     }
   }
   import BusinessType._
 
   implicit val config = Config(balanceSheetThreshold = GBP(20000000), netTurnoverThreshold = GBP(400000000), ownFundsThreshold = GBP(2000000))
 
-  val ucMustBeValidated = new MifidUC("No validation issues"){
-    scenario(investmentFirm name "" lotsOfMoney) produces UnknownClient when {ed => println(s"in when: ${ed.hasValidationIssues} $ed"); ed.hasValidationIssues}
+  val ucMustBeValidated = new MifidUC("No validation issues") {
+    scenario(invalid name "" lotsOfMoney) produces UnknownClient when { ed => println(s"in when: ${ed.hasValidationIssues} $ed"); ed.hasValidationIssues }
 
   }
   val ucAuthorisedOrRegulatedEntites = new MifidUC("Authorised or Regulated entities") {
@@ -125,9 +130,9 @@ class MifidDecisionMaker extends Question{
   }
 
   val categoriser = Engine(ucMustBeValidated or ucLargeUndertaking or ucAuthorisedOrRegulatedEntites or ucNationalAndRegionalBodies or ucInstituionalInvestorsWhoseMainActivityIsToInves)
-//  println(ucMustBeValidated.allScenarios)
-//  val categoriser2 = Engine(ucAuthorisedOrRegulatedEntites or ucLargeUndertaking or ucNationalAndRegionalBodies)
-//  val categoriser3 = Engine(ucAuthorisedOrRegulatedEntites or ucLargeUndertaking or ucNationalAndRegionalBodies or someOtherComplicatedThing)
+  //  println(ucMustBeValidated.allScenarios)
+  //  val categoriser2 = Engine(ucAuthorisedOrRegulatedEntites or ucLargeUndertaking or ucNationalAndRegionalBodies)
+  //  val categoriser3 = Engine(ucAuthorisedOrRegulatedEntites or ucLargeUndertaking or ucNationalAndRegionalBodies or someOtherComplicatedThing)
 
 
 }
@@ -140,7 +145,7 @@ object Trace extends App {
   implicit def v[P, R] = new SimpleValidation[P, R]
 
   private val categoriser: Engine[EntityDetails, MifidConclusion] = new MifidDecisionMaker().categoriser
-  categoriser.tools.trace("mifid")
+  categoriser.tools.printTraceAboutAdding("mifid")
   println("Issues")
   categoriser.tools.issues.foreach(println)
 }
