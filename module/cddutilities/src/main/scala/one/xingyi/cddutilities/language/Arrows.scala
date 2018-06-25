@@ -16,7 +16,7 @@ trait AnyLanguage {
     //    }
     def sideeffect(fn: T => Unit): T = {
       val result = t
-      fn(t)
+      fn(result)
       result
     }
     def sideeffectTry(fn: Try[T] => Unit): Try[T] = {

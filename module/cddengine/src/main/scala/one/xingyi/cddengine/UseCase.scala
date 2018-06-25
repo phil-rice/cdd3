@@ -18,7 +18,7 @@ trait UseCase[P, R] {
   def data: EngineComponentData
   def allScenarios: List[Scenario[P, R]]
   def allUseCases: List[UseCase[P, R]]
-  def copyWithOnly(list: List[Scenario[P, R]]): UseCase[P, R] = {val result = SimpleUseCase(data, allScenarios.filter(list.contains)); println(result.allScenarios.size);result}
+  def copyWithOnly(list: List[Scenario[P, R]]): UseCase[P, R] = {SimpleUseCase(data, allScenarios.filter(list.contains))}
 }
 
 case class SimpleUseCase[P, R](data: EngineComponentData, allScenarios: List[Scenario[P, R]]) extends UseCase[P, R] {

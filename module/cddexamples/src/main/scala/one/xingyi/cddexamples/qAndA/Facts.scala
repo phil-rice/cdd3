@@ -5,9 +5,9 @@ import com.sun.net.httpserver.HttpExchange
 import core.{HttpUtils, PathAndHandler, SimpleHttpResponse, SimpleHttpServer}
 import one.xingyi.cddexamples.{BusinessType, Config, EntityDetails, MifidDecisionMaker}
 import one.xingyi.cddmustache.{Mustache, MustacheWithTemplate}
-import one.xingyi.cddutilities.functions.Lens
 import one.xingyi.cddutilities.json._
 import one.xingyi.cddutilities.language.AnyLanguage._
+import one.xingyi.cddutilities.optics.Lens
 import one.xingyi.json4s.Json4sWriter
 import org.json4s.JValue
 
@@ -18,12 +18,12 @@ case class Fact[DS, T](id: String, lens: Lens[DS, T])
 
 case class IndustrySector(s: String)
 case class Address(s: String)
-case class Website(s: String)
+
 case class TeleNo(s: String)
 case class BIC(s: String)
 case class ClearingCode(s: String)
 case class Chaps(s: String)
-
+case class Website(s: String)
 case class Naics(code: String)
 case class Nace(code: Int)
 case class Identity(name: String, businessType: BusinessType,
@@ -53,14 +53,6 @@ case class Activities(mainActivities: String, mainBusinessIsFinancialTransaction
 case class GateKeeperThings(bearerShares: Boolean)
 
 case class Entity(identity: Identity, financialData: FinancialData, activities: Activities, gateKeeperThings: GateKeeperThings)
-
-trait Manipulate[DS] {
-  val identity: Lens[DS, Identity] = ???
-  val status: Lens[DS, Boolean] = ???
-  val balanceSheet: Lens[DS, BalanceSheet] = ???
-  val profitAndLoss: Lens[DS, ProfitAndLoss] = ???
-  val activites: Lens[DS, Activities] = ???
-}
 
 object Decision {
   def apply[E](items: (BlackboardItem[E, _], String)*)(implicit blackboard: Blackboard[E]) = { e: E => items.find { case (bi, _) => bi.validate(List(), e).nonEmpty } }
@@ -174,7 +166,6 @@ trait Question {
     val financialDataF = child(financialData) getter (_.financialData) setter ((e, i) => e.copy(financialData = i))
   }
 
-
   val decision: Entity => Option[(BlackboardItem[Entity, _], String)] = Decision(blackboard.identityF -> "entity.identity", blackboard.financialDataF -> "identity.financialData")
 
   val entity = Entity(
@@ -187,7 +178,7 @@ trait Question {
 
 }
 
-object Question extends Question with App {
+object Question extends Question {
   implicit val resource = ResourceBundle.getBundle("message")
   //  println(blackboard.toJson(entity))
   import one.xingyi.json4s.Json4sWriter._
@@ -202,54 +193,6 @@ object Question extends Question with App {
   println(blackboard.findLens(List("financialData", "balanceSheet", "totalNetAssets"))(entity))
   val newEntity = blackboard.update(entity)(List("financialData.balanceSheet.totalNetAssets" -> "1234", "identity.name" -> "newName"))
   println(implicitly[JsonWriter[JValue]].apply(blackboard.toJson(newEntity)))
-
-}
-
-
-object Website extends App with Question {
-  implicit val resource = ResourceBundle.getBundle("message")
-  import Json4sWriter._
-  implicit def template: MustacheWithTemplate[JValue] = Mustache.withTemplate("main.template.mustache") apply("question.mustache", "Coolness")
-  val executor = HttpUtils.makeDefaultExecutor
-  var theEntity = entity
-
-  val decisionMaker = new MifidDecisionMaker().categoriser
-  implicit val config = Config(balanceSheetThreshold = GBP(20000000), netTurnoverThreshold = GBP(400000000), ownFundsThreshold = GBP(2000000))
-
-  //  decisionMaker.tools.trace("mifid")
-  def html = {
-    val dec = decision(theEntity) match {
-      case None => JsonString("none")
-      case Some((entity, name)) => JsonObject("name" -> name, "val" -> entity.toJson(List(), theEntity))
-    }
-    template.apply(JsonMaps(JsonObject("conclusion" -> Try(decisionMaker(EntityDetails(theEntity))).toString, "question" -> dec, "entity" -> blackboard.toJson(theEntity))))
-  }
-  new SimpleHttpServer(9000, executor,
-    new PathAndHandler {
-      override def path(): String = "/change"
-      override def handle(httpExchange: HttpExchange): Unit = {
-        try {
-          val x = httpExchange.getRequestURI.getQuery.split("&").toList.flatMap(s => s.split('=').toList match {
-            case left :: right :: _ => List(left -> right)
-            case left :: _ => List(left -> "")
-            case _ => List()
-          })
-          println(x)
-          theEntity = blackboard.update(theEntity)(x)
-          HttpUtils.process(httpExchange, () => new SimpleHttpResponse(200, "text/html", html))
-        } catch {case e => e.printStackTrace(); HttpUtils.process(httpExchange, () => new SimpleHttpResponse(200, "text/html", s"Error: $e"))}
-      }
-    },
-    new PathAndHandler {
-      override def path(): String = "/"
-      override def handle(httpExchange: HttpExchange): Unit = {
-
-        theEntity = entity
-
-        HttpUtils.process(httpExchange, () => new SimpleHttpResponse(200, "text/html", html))
-      }
-    }
-  ).start()
 
 }
 

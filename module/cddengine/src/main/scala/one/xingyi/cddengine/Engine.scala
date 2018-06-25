@@ -4,8 +4,8 @@ import java.text.MessageFormat
 
 import one.xingyi.cddscenario.{HasScenarios, Scenario, ScenarioLogic}
 import one.xingyi.cddutilities._
-import one.xingyi.cddutilities.functions.Lens
 import one.xingyi.cddutilities.json.{JsonMaps, JsonObject, JsonWriter, TemplateEngine}
+import one.xingyi.cddutilities.optics.Lens
 
 import scala.collection.concurrent.TrieMap
 import scala.language.higherKinds
@@ -18,7 +18,6 @@ case class JsonDataForTree[J: JsonWriter, P, R](jsonObject: JsonObject, data: Op
 
 trait Engine[P, R] extends PartialFunction[P, R] {
   def tools: EngineTools[P, R]
-
 }
 
 trait EngineTools[P, R] {

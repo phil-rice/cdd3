@@ -49,8 +49,8 @@ case class EntityDetails(entity: Entity)(implicit config: Config, blackboard: Bl
   def highTurnoverSheet = entity.financialData.profitAndLoss.turnover >= config.netTurnoverThreshold
   def highOwnFunds = entity.financialData.balanceSheet.shareHoldersInterest >= config.ownFundsThreshold
   val countOfHighMoneyMakers = List(bigBalanceSheet, highTurnoverSheet, highOwnFunds).count(_ == true)
-  def hasValidationIssues = {val validation = blackboard.children.flatMap(_.validate(List(), entity)); ; println(validation + " " + validation.isEmpty); validation.nonEmpty}
-  override def toString: String = s"EntityDetais($entity, ($bigBalanceSheet, $highTurnoverSheet, $highOwnFunds), count $countOfHighMoneyMakers, validation: ${blackboard.children.flatMap(_.validate(List(), entity))})"
+  def hasValidationIssues = {blackboard.children.flatMap(_.validate(List(), entity)).nonEmpty}
+  override def toString: String = s"EntityDetails($entity, ($bigBalanceSheet, $highTurnoverSheet, $highOwnFunds), count $countOfHighMoneyMakers, validation: ${blackboard.children.flatMap(_.validate(List(), entity))})"
 }
 
 
@@ -93,7 +93,7 @@ class MifidDecisionMaker extends Question {
   implicit val config = Config(balanceSheetThreshold = GBP(20000000), netTurnoverThreshold = GBP(400000000), ownFundsThreshold = GBP(2000000))
 
   val ucMustBeValidated = new MifidUC("No validation issues") {
-    scenario(invalid name "" lotsOfMoney) produces UnknownClient when { ed => println(s"in when: ${ed.hasValidationIssues} $ed"); ed.hasValidationIssues }
+    scenario(invalid name "" lotsOfMoney) produces UnknownClient when { ed =>  ed.hasValidationIssues }
 
   }
   val ucAuthorisedOrRegulatedEntites = new MifidUC("Authorised or Regulated entities") {
@@ -118,7 +118,7 @@ class MifidDecisionMaker extends Question {
   }
 
   val ucNationalAndRegionalBodies = new MifidUC("National and regional body") {
-    scenario(nationalGovernment name "UK PLC" totallyBrokeAndInviolationofGAP7fold) produces ProfessionalClient when (ed => nationalRegionalBodiesOrSimilar.contains(ed.entity.identity.businessType))
+    scenario(nationalGovernment name "UK PLC" totallyBrokeAndInviolationofGAP7fold) produces ProfessionalClient  when (ed => nationalRegionalBodiesOrSimilar.contains(ed.entity.identity.businessType))
     scenario(regionalGovernment name "UK PLC" totallyBrokeAndInviolationofGAP7fold) produces ProfessionalClient
     scenario(publicBodiesThatManagePublicDebt name "UK PLC" totallyBrokeAndInviolationofGAP7fold) produces ProfessionalClient
   }

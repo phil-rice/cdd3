@@ -8,23 +8,22 @@ import scala.util.Try
 
 trait CddRunner extends IdMaker {
   protected def engines: Try[List[Engine[_, _]]]
-  protected lazy val tryTests = engines.map(engineList => NestedTest(getClass.getSimpleName, engineList.map(_.tools.test(s"a engine $getNextId"))))
+  protected lazy val tryTests = engines.map(engineList => NestedTest(getClass.getSimpleName, engineList.map(_.tools.test(s"Engine $getNextId"))))
 }
 
-case class ScenarioFailedException[P, R](s: Scenario[P, R], trace: TraceThroughEngineResultData[P, R], result: R)(implicit shortP: ShortPrint[P],shortR: ShortPrint[R]) extends
+case class ScenarioFailedException[P, R](s: Scenario[P, R], trace: TraceThroughEngineResultData[P, R], result: R)(implicit shortP: ShortPrint[P], shortR: ShortPrint[R]) extends
   RuntimeException(s"Actual result: ${shortR(result)}\n\n" +
     s"${trace.trace.map { d => d.logic.fn.isDefinedAt(s.situation) + " " + d.logic.definedInSourceCodeAt + " " + d.logic.ifString }.mkString("\n")}\n" +
-    s"Situation ${shortP(s.situation)}\n"+
+    s"Situation ${shortP(s.situation)}\n" +
     s"Detailed ${s.situation}")
 
 
-class SimpleTestMaker[P:ShortPrint, R:ShortPrint](name: String, engine: Engine[P, R])(implicit shortPrintScenario: ShortPrint[Scenario[P, R]]) {
+class SimpleTestMaker[P: ShortPrint, R: ShortPrint](name: String, engine: Engine[P, R])(implicit shortPrintScenario: ShortPrint[Scenario[P, R]]) {
   import one.xingyi.cddutilities.language.AnyLanguage._
-  def checkResult(s: Scenario[P, R]) = engine(s.situation) sideeffect (result => if (!s.acceptResult(s.situation, result)) {
-    val trace = engine.tools.trace(s.situation)
-
-    throw new ScenarioFailedException(s, trace, result)
-  })
+  val issueMap = engine.tools.issues.foldLeft(Map[Scenario[P, R], DecisionIssue[P, R]]()) { (a, d) => a + (d.scenario -> d) }
+  def throwIfIssue = { s: Scenario[P, R] => issueMap.get(s).fold(s)(throw _) }
+  def checkIfValid = { s: Scenario[P, R] => engine(s.situation) sideeffect (result => if (!s.acceptResult(s.situation, result)) throw ScenarioFailedException(s, engine.tools.trace(s.situation), result)) }
+  def checkResult = throwIfIssue andThen checkIfValid
 
   def validate(engine: Engine[P, R])(s: Scenario[P, R]): CddTest = ScenarioTest(ShortPrint(s), () => checkResult(s))
 
